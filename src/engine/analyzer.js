@@ -48,36 +48,61 @@ export async function analyzeInteractions(supplements) {
   }
 
   // 3. API DUR 체크 (API 키가 있는 경우)
+  //    사용자 영양제 성분 간 실제 충돌만 필터링
+  //    (의약품과의 병용금기는 제외 — 이트라코나졸 등 수백건 방지)
   if (publicDataAPI.isConfigured) {
     try {
+      // 사용자 영양제에 포함된 한글 성분명 목록
+      const userIngredientNames = new Set();
+      for (const ingId of allIngredientIds) {
+        const ingData = INGREDIENTS[ingId];
+        if (ingData?.nameKr) userIngredientNames.add(ingData.nameKr);
+      }
+
+      const checkedPairs = new Set(); // 중복 방지용
+
       for (const ingId of allIngredientIds) {
         const ingData = INGREDIENTS[ingId];
         if (!ingData) continue;
 
         const durResults = await publicDataAPI.checkDURInteractions(ingData.nameKr);
-        if (durResults && durResults.length > 0) {
-          for (const dur of durResults) {
-            // 이미 로컬 DB에서 찾은 것과 중복되지 않는 것만 추가
-            const alreadyExists = results.some(
-              (r) => r.title.includes(dur.ingredientA) && r.title.includes(dur.ingredientB)
-            );
-            if (!alreadyExists && dur.prohibition) {
-              results.push({
-                type: 'conflict',
-                severity: 'warning',
-                ingredientA: ingId,
-                ingredientB: 'dur-api',
-                ingredientAName: dur.ingredientA,
-                ingredientBName: dur.ingredientB || '기타 성분',
-                title: `⚠️ DUR 주의: ${dur.ingredientA}`,
-                description: dur.prohibition,
-                tip: '의약품안전사용서비스(DUR) 정보입니다. 자세한 사항은 약사에게 문의하세요.',
-                sourceA: ingredientMap.get(ingId)?.join(', ') || '',
-                sourceB: 'DUR DB',
-                fromAPI: true,
-              });
-            }
-          }
+        if (!durResults || durResults.length === 0) continue;
+
+        for (const dur of durResults) {
+          // 핵심: 상대 성분(ingredientB)이 사용자 영양제에 있는 경우만 표시
+          const otherIngredient = dur.ingredientB || '';
+          const isRelevant = [...userIngredientNames].some(
+            (name) => otherIngredient.includes(name) || name.includes(otherIngredient)
+          );
+
+          if (!isRelevant || !dur.prohibition) continue;
+
+          // 중복 체크 (A-B, B-A 동일 취급)
+          const pairKey = [ingData.nameKr, otherIngredient].sort().join('↔');
+          if (checkedPairs.has(pairKey)) continue;
+          checkedPairs.add(pairKey);
+
+          // 로컬 DB에서 이미 잡은 것도 제외
+          const alreadyExists = results.some(
+            (r) => r.ingredientAName === ingData.nameKr && r.ingredientBName === otherIngredient
+              || r.ingredientAName === otherIngredient && r.ingredientBName === ingData.nameKr
+          );
+          if (alreadyExists) continue;
+
+          results.push({
+            type: 'conflict',
+            severity: 'warning',
+            ingredientA: ingId,
+            ingredientB: 'dur-api',
+            ingredientAName: dur.ingredientA || ingData.nameKr,
+            ingredientBName: otherIngredient,
+            title: `⚠️ DUR 주의: ${dur.ingredientA || ingData.nameKr}`,
+            description: dur.prohibition,
+            tip: '의약품안전사용서비스(DUR) 정보입니다. 자세한 사항은 약사에게 문의하세요.',
+            sourceA: ingredientMap.get(ingId)?.join(', ') || '',
+            sourceB: 'DUR DB',
+            fromAPI: true,
+          });
         }
       }
     } catch (err) {

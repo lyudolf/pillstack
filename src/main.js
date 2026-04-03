@@ -4,12 +4,14 @@
 
 import './style.css';
 import { renderHome } from './components/home.js';
-import { renderSearch, handleSearch, filterCategory, getSupplementById } from './components/search.js';
-import { renderCamera, initCamera, capturePhoto, destroyCamera } from './components/camera.js';
+import { renderSearch, handleSearch, filterCategory, clearSearch, getSupplementById, initSearch } from './components/search.js';
+import { renderCamera, initCamera, capturePhoto, handleImageUpload, retakePhoto, startOCR, destroyCamera } from './components/camera.js';
 import { renderAnalysis } from './components/analysis.js';
 import { renderSettings } from './components/settings.js';
+import { showProductDetail, closeProductDetail, getCurrentProduct } from './components/detail.js';
 import { analyzeInteractions, getTimingRecommendation } from './engine/analyzer.js';
 import { publicDataAPI } from './api/publicData.js';
+import { saveReminderTime, initServiceWorker, requestNotificationPermission, syncRemindersToSW, saveScheduleForSW } from './services/reminder.js';
 
 // ─── State Management ───
 const STORAGE_KEY = 'medicheck_supplements';
@@ -43,6 +45,9 @@ function navigate(page) {
 
   if (page === 'camera') {
     setTimeout(() => initCamera(), 300);
+  }
+  if (page === 'search') {
+    setTimeout(() => initSearch(), 100);
   }
 }
 
@@ -80,6 +85,8 @@ async function startAnalysis() {
   try {
     state.analysisResult = await analyzeInteractions(state.supplements);
     state.timingResult = getTimingRecommendation(state.supplements);
+    // SW에 스케줄 동기화
+    saveScheduleForSW(state.timingResult);
     state.currentPage = 'analysis';
     render();
   } catch (err) {
@@ -101,6 +108,24 @@ function addFromSearch(id) {
   }
 }
 
+// ─── Detail View ───
+function showDetail(id) {
+  const product = getSupplementById(id);
+  if (product) showProductDetail(product);
+}
+
+function closeDetail() {
+  closeProductDetail();
+}
+
+function addFromDetail() {
+  const product = getCurrentProduct();
+  if (product) {
+    addSupplement(product);
+    closeProductDetail();
+  }
+}
+
 // ─── API Status ───
 async function refreshApiStatus() {
   showToast('🔄 API 연결 확인 중...', 'info');
@@ -119,6 +144,73 @@ function clearAllData() {
     showToast('🗑️ 모든 데이터가 초기화되었습니다.', 'info');
     navigate('home');
   }
+}
+
+async function toggleSetting(key, value) {
+  localStorage.setItem(key, value);
+
+  // 알림 토글 ON 시 권한 요청 + SW 동기화
+  if (key === 'medicheck_noti' && value) {
+    const permission = await requestNotificationPermission();
+    if (permission === 'denied') {
+      localStorage.setItem(key, false);
+      showToast('⚠️ 알림 권한이 차단되어 있습니다. 브라우저 설정에서 허용해주세요.', 'error');
+      render();
+      return;
+    }
+    if (permission === 'granted') {
+      syncRemindersToSW();
+      showToast('🔔 복용 알림이 활성화되었습니다!', 'success');
+    }
+  } else if (key === 'medicheck_noti' && !value) {
+    syncRemindersToSW();
+    showToast('🔕 복용 알림이 비활성화되었습니다.', 'info');
+  } else {
+    showToast('✅ 설정이 저장되었습니다.', 'success');
+  }
+}
+
+function exportData() {
+  const data = {
+    supplements: state.supplements,
+    exportDate: new Date().toISOString(),
+    version: '1.0.0',
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `medicheck_backup_${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('📤 데이터를 내보냈습니다.', 'success');
+}
+
+function setReminderTime(slot, time) {
+  saveReminderTime(slot, time);
+  const labels = { morning: '아침', evening: '저녁', bedtime: '취침 전' };
+  showToast(`⏰ ${labels[slot] || slot} 복용 시간: ${time}`, 'success');
+}
+
+function toggleDoseCheck(slot) {
+  const today = new Date().toISOString().slice(0, 10);
+  const key = 'medicheck_checked_' + today;
+  let checked = [];
+  try {
+    const saved = localStorage.getItem(key);
+    if (saved) checked = JSON.parse(saved);
+  } catch (e) { /* ignore */ }
+
+  const idx = checked.indexOf(slot);
+  if (idx === -1) {
+    checked.push(slot);
+    showToast('✅ 복용 완료!', 'success');
+  } else {
+    checked.splice(idx, 1);
+    showToast('↩️ 복용 체크 해제', 'info');
+  }
+  localStorage.setItem(key, JSON.stringify(checked));
+  render();
 }
 
 // ─── UI Helpers ───
@@ -195,7 +287,7 @@ function _renderBottomNav() {
   const items = [
     { id: 'home', icon: '🏠', label: '홈' },
     { id: 'search', icon: '🔍', label: '검색' },
-    { id: 'camera', icon: '📷', label: '촬영' },
+    { id: 'camera', icon: '🏷️', label: '인식' },
     { id: 'settings', icon: '⚙️', label: '설정' },
   ];
 
@@ -212,18 +304,28 @@ function _renderBottomNav() {
   `;
 }
 
-// ─── Global API (for onclick handlers in templates) ───
 window.app = {
   navigate,
   addSupplement,
   removeSupplement,
   addFromSearch,
+  showDetail,
+  closeDetail,
+  addFromDetail,
   startAnalysis,
   handleSearch,
   filterCategory,
+  clearSearch,
   capturePhoto,
+  handleImageUpload,
+  retakePhoto,
+  startOCR,
   refreshApiStatus,
   clearAllData,
+  toggleSetting,
+  exportData,
+  setReminderTime,
+  toggleDoseCheck,
   showToast,
   getState: () => state,
 };
@@ -232,6 +334,9 @@ window.app = {
 async function init() {
   loadState();
 
+  // Service Worker 등록 (푸시 알림용)
+  await initServiceWorker();
+
   // Check backend API status
   try {
     const connected = await publicDataAPI.checkHealth();
@@ -239,6 +344,12 @@ async function init() {
   } catch {
     state.apiConnected = false;
   }
+
+  // SW에서 복용 완료 이벤트 수신
+  window.addEventListener('dose-checked', (e) => {
+    render();
+    showToast('✅ 복용 완료 처리됨!', 'success');
+  });
 
   // Hide splash after brief delay
   setTimeout(() => {

@@ -2,6 +2,8 @@
 // Analysis Component - 분석 결과 대시보드
 // ═══════════════════════════════════════════
 
+import { loadReminders } from '../services/reminder.js';
+
 export function renderAnalysis(analysisResult, timingResult) {
   if (!analysisResult) {
     return `<div class="page active" id="page-analysis">
@@ -118,11 +120,26 @@ function _renderInteractionCard(item, index) {
 function _renderTimeline(timing) {
   if (!timing.schedule || timing.schedule.length === 0) return '';
 
+  const reminders = loadReminders();
+  const slotMap = { '아침': 'morning', '저녁': 'evening', '취침 전': 'bedtime' };
+
   return `
     <div class="timeline">
-      ${timing.schedule.map((slot) => `
+      ${timing.schedule.map((slot) => {
+        const slotKey = slotMap[slot.label] || 'morning';
+        const savedTime = reminders[slotKey] || '08:00';
+        return `
         <div class="timeline-item">
-          <div class="time-label">${slot.time}</div>
+          <div class="time-label-row">
+            <div class="time-label">${slot.time}</div>
+            <div class="time-picker-wrap">
+              <input type="time" class="time-picker-input"
+                     value="${savedTime}"
+                     data-slot="${slotKey}"
+                     onchange="window.app.setReminderTime('${slotKey}', this.value)"
+                     title="${slot.label} 복용 시간 설정">
+            </div>
+          </div>
           <div class="time-supplements">
             ${slot.supplements.length > 0 ? slot.supplements.map((s) => `
               <div class="time-pill">
@@ -133,7 +150,10 @@ function _renderTimeline(timing) {
             `).join('') : '<span style="font-size:0.8rem;color:var(--text-muted);">해당 없음</span>'}
           </div>
         </div>
-      `).join('')}
+      `;}).join('')}
+    </div>
+    <div class="reminder-save-hint animate-in">
+      <span>⏰</span> 시간을 설정하면 복용 알림에 반영됩니다
     </div>
   `;
 }

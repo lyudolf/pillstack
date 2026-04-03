@@ -9,10 +9,15 @@ const API_BASE = '/api';
 class PublicDataAPI {
   constructor() {
     this._connected = false;
+    this._services = { healthFood: false, dur: false, ingredient: false };
   }
 
   get isConfigured() {
     return this._connected;
+  }
+
+  get services() {
+    return this._services;
   }
 
   /**
@@ -24,6 +29,7 @@ class PublicDataAPI {
       if (!res.ok) return false;
       const data = await res.json();
       this._connected = data.apiConfigured === true;
+      this._services = data.services || { healthFood: false, dur: false, ingredient: false };
       return this._connected;
     } catch {
       this._connected = false;
