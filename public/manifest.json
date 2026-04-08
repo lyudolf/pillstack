@@ -1,6 +1,6 @@
 {
-  "name": "MediCheck - 영양제 복용 체크",
-  "short_name": "MediCheck",
+  "name": "PillStack - 영양제 복용 체크",
+  "short_name": "PillStack",
   "description": "AI 기반 영양제 성분 분석 및 복용 알림 서비스",
   "start_url": "/",
   "display": "standalone",

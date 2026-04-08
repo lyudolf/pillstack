@@ -8,6 +8,8 @@ import { renderSearch, handleSearch, filterCategory, clearSearch, getSupplementB
 import { renderCamera, initCamera, capturePhoto, handleImageUpload, retakePhoto, startOCR, destroyCamera } from './components/camera.js';
 import { renderAnalysis } from './components/analysis.js';
 import { renderSettings } from './components/settings.js';
+import { renderSchedule, saveTimingResult, loadTimingResult } from './components/schedule.js';
+import { renderCalendar, setCalendarMonth, handleDayClick } from './components/calendar.js';
 import { showProductDetail, closeProductDetail, getCurrentProduct } from './components/detail.js';
 import { analyzeInteractions, getTimingRecommendation } from './engine/analyzer.js';
 import { publicDataAPI } from './api/publicData.js';
@@ -28,6 +30,9 @@ function loadState() {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) state.supplements = JSON.parse(saved);
+    // 저장된 분석 결과 복원
+    const savedTiming = loadTimingResult();
+    if (savedTiming) state.timingResult = savedTiming;
   } catch (e) {
     console.warn('로컬 데이터 로드 실패:', e);
   }
@@ -85,6 +90,8 @@ async function startAnalysis() {
   try {
     state.analysisResult = await analyzeInteractions(state.supplements);
     state.timingResult = getTimingRecommendation(state.supplements);
+    // 분석 결과 영구 저장 (복용관리 페이지에서 재사용)
+    saveTimingResult(state.timingResult);
     // SW에 스케줄 동기화
     saveScheduleForSW(state.timingResult);
     state.currentPage = 'analysis';
@@ -265,7 +272,13 @@ function render() {
       pageHTML = renderHome();
       break;
     case 'search':
-      pageHTML = renderHome() + renderSearch();
+      pageHTML = renderSearch();
+      break;
+    case 'schedule':
+      pageHTML = renderSchedule();
+      break;
+    case 'calendar':
+      pageHTML = renderCalendar();
       break;
     case 'camera':
       pageHTML = renderCamera();
@@ -286,7 +299,8 @@ function render() {
 function _renderBottomNav() {
   const items = [
     { id: 'home', icon: '🏠', label: '홈' },
-    { id: 'search', icon: '🔍', label: '검색' },
+    { id: 'calendar', icon: '📅', label: '캘린더' },
+    { id: 'schedule', icon: '⏰', label: '복용관리' },
     { id: 'camera', icon: '🏷️', label: '인식' },
     { id: 'settings', icon: '⚙️', label: '설정' },
   ];
@@ -328,6 +342,37 @@ window.app = {
   toggleDoseCheck,
   showToast,
   getState: () => state,
+  showShelfDetail: (id) => {
+    const supp = state.supplements.find(s => s.id === id);
+    if (supp) showProductDetail(supp);
+  },
+  // Calendar
+  calPrev: () => {
+    const d = new Date(new Date().getFullYear(), new Date().getMonth());
+    // Get current view from calendar state
+    let m = parseInt(localStorage.getItem('_cal_m') ?? new Date().getMonth());
+    let y = parseInt(localStorage.getItem('_cal_y') ?? new Date().getFullYear());
+    m--;
+    if (m < 0) { m = 11; y--; }
+    localStorage.setItem('_cal_m', m);
+    localStorage.setItem('_cal_y', y);
+    setCalendarMonth(y, m);
+    render();
+  },
+  calNext: () => {
+    let m = parseInt(localStorage.getItem('_cal_m') ?? new Date().getMonth());
+    let y = parseInt(localStorage.getItem('_cal_y') ?? new Date().getFullYear());
+    m++;
+    if (m > 11) { m = 0; y++; }
+    localStorage.setItem('_cal_m', m);
+    localStorage.setItem('_cal_y', y);
+    setCalendarMonth(y, m);
+    render();
+  },
+  calDayClick: (dateStr) => {
+    const msg = handleDayClick(dateStr);
+    showToast(msg, 'info');
+  },
 };
 
 // ─── Init ───

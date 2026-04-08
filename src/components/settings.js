@@ -72,7 +72,7 @@ export function renderSettings() {
           <div class="settings-item">
             <div>
               <div class="settings-label">버전</div>
-              <div class="settings-desc">MediCheck v1.0.0</div>
+              <div class="settings-desc">PillStack v1.0.0</div>
             </div>
           </div>
           <div class="settings-item">
@@ -92,10 +92,10 @@ export function renderSettings() {
         <!-- 면책 -->
         <div class="card animate-in animate-in-delay-3" style="margin-top:8px;">
           <p style="font-size:0.7rem;color:var(--text-muted);line-height:1.6;text-align:center;">
-            ⚠️ MediCheck는 참고용 영양 정보를 제공합니다.<br>
+            ⚠️ PillStack는 참고용 영양 정보를 제공합니다.<br>
             정확한 복용 상담은 의사 또는 약사에게 문의해주세요.<br>
             <br>
-            © 2026 MediCheck
+            © 2026 PillStack
           </p>
         </div>
       </div>

@@ -11,7 +11,7 @@ export function renderAnalysis(analysisResult, timingResult) {
     </div>`;
   }
 
-  const { score, interactions, conflictCount, synergyCount, summary } = analysisResult;
+  const { score, interactions, conflictCount, synergyCount, summary, ingredientAnalysis } = analysisResult;
   const scoreClass = score >= 80 ? 'good' : score >= 60 ? 'warn' : 'bad';
 
   return `
@@ -63,6 +63,9 @@ export function renderAnalysis(analysisResult, timingResult) {
           </div>
         ` : ''}
 
+        <!-- Gemini 성분 분석 결과 -->
+        ${_renderIngredientAnalysis(ingredientAnalysis)}
+
         <!-- Timing Recommendation -->
         ${timingResult ? `
           <div class="schedule-section animate-in animate-in-delay-3">
@@ -113,6 +116,102 @@ function _renderInteractionCard(item, index) {
           <span class="tag" style="background:rgba(59,130,246,0.15);color:var(--accent-blue);border-color:rgba(59,130,246,0.3);">🌐 공공데이터 DUR</span>
         </div>
       ` : ''}
+    </div>
+  `;
+}
+
+// ─── Gemini 성분 분석 렌더 ───
+function _renderIngredientAnalysis(ia) {
+  if (!ia) return '';
+
+  const hasWarnings  = ia.warnings?.length  > 0;
+  const hasCautions  = ia.cautions?.length  > 0;
+  const hasSynergies = ia.synergies?.length > 0;
+  const hasNutrients = ia.extractedNutrients?.length > 0;
+
+  // 아무 결과도 없으면
+  if (!hasWarnings && !hasCautions && !hasSynergies) {
+    if (ia.source === 'none') {
+      return `
+        <div class="card animate-in" style="margin-bottom:20px;opacity:0.6;">
+          <div style="display:flex;align-items:center;gap:8px;font-size:0.8rem;color:var(--text-muted);">
+            <span>🤖</span>
+            <span>Gemini 성분 분석 미설정 — 서버 .env에 GEMINI_API_KEY를 추가하면 과다 섭취·충돌 경고가 표시됩니다.</span>
+          </div>
+        </div>`;
+    }
+    return '';
+  }
+
+  return `
+    <div class="section-title animate-in animate-in-delay-2">
+      <span class="section-icon">🤖</span>
+      AI 성분 심층 분석
+    </div>
+
+    ${ hasNutrients ? `
+      <div class="card animate-in" style="margin-bottom:12px;">
+        <div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:8px;">📋 추출된 핵심 성분</div>
+        ${ ia.extractedNutrients.map(p => `
+          <div style="margin-bottom:6px;">
+            <span style="font-size:0.75rem;color:var(--text-secondary);">${p.product}</span><br>
+            <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;">
+              ${ (p.nutrients || []).map(n =>
+                `<span class="tag">${n}</span>`
+              ).join('') }
+            </div>
+          </div>`).join('') }
+      </div>` : '' }
+
+    ${ hasWarnings ? `
+      <div class="ia-section">
+        ${ ia.warnings.map((w, i) => `
+          <div class="interaction-card danger animate-in" style="animation-delay:${0.1*i}s;opacity:0;">
+            <div class="interaction-header">
+              <div class="interaction-badge">🔴</div>
+              <div>
+                <div class="interaction-title">과다 위험: ${w.nutrient}</div>
+                <div class="interaction-subtitle">${(w.products || []).join(' + ')}</div>
+              </div>
+            </div>
+            <div class="interaction-body">${w.reason}</div>
+            <div class="interaction-tip"><span class="tip-icon">💡</span><span>일일 상한 섭취량(UL) 초과 가능. 복용량 조정을 권장합니다.</span></div>
+          </div>`) .join('') }
+      </div>` : '' }
+
+    ${ hasCautions ? `
+      <div class="ia-section">
+        ${ ia.cautions.map((c, i) => `
+          <div class="interaction-card caution animate-in" style="animation-delay:${0.1*i}s;opacity:0;">
+            <div class="interaction-header">
+              <div class="interaction-badge">🟡</div>
+              <div>
+                <div class="interaction-title">흡수 방해: ${(c.nutrients || []).join(' ↔ ')}</div>
+                <div class="interaction-subtitle">${(c.products || []).join(' + ')}</div>
+              </div>
+            </div>
+            <div class="interaction-body">${c.reason}</div>
+            <div class="interaction-tip"><span class="tip-icon">💡</span><span>복용 시간을 2시간 이상 간격을 두면 흡수율을 높일 수 있습니다.</span></div>
+          </div>`) .join('') }
+      </div>` : '' }
+
+    ${ hasSynergies ? `
+      <div class="ia-section">
+        ${ ia.synergies.map((s, i) => `
+          <div class="interaction-card synergy animate-in" style="animation-delay:${0.1*i}s;opacity:0;">
+            <div class="interaction-header">
+              <div class="interaction-badge">✅</div>
+              <div>
+                <div class="interaction-title">시너지: ${(s.nutrients || []).join(' + ')}</div>
+                <div class="interaction-subtitle">${(s.products || []).join(' + ')}</div>
+              </div>
+            </div>
+            <div class="interaction-body">${s.reason}</div>
+          </div>`) .join('') }
+      </div>` : '' }
+
+    <div class="card" style="margin-bottom:20px;font-size:0.72rem;color:var(--text-muted);line-height:1.6;">
+      🤖 AI 분석 결과는 참고용입니다. 정확한 복용 상담은 약사 또는 의사에게 확인하세요.
     </div>
   `;
 }

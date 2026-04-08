@@ -518,6 +518,123 @@ app.get('/api/supplements/ingredient', async (req, res) => {
   }
 });
 
+// ─── Gemini 성분 과다/충돌 분석 ───
+app.post('/api/analyze/ingredients', async (req, res) => {
+  const { supplements } = req.body; // [{ name, registNo }]
+
+  if (!supplements || supplements.length < 2) {
+    return res.status(400).json({ error: '영양제 2개 이상 필요' });
+  }
+
+  if (!GEMINI_KEY || GEMINI_KEY.includes('여기에')) {
+    return res.json({ warnings: [], cautions: [], synergies: [], source: 'none' });
+  }
+
+  // DB에서 각 제품의 성분 정보 수집
+  const productDetails = [];
+  for (const supp of supplements) {
+    const item = supplementsDB.find(i =>
+      i.name === supp.name || i.registNo === supp.registNo
+    );
+    if (item) {
+      productDetails.push({
+        name: item.name,
+        mainFunction: item.mainFunction || '',
+        intake: item.intake || '',
+        caution: item.caution || '',
+      });
+    } else {
+      productDetails.push({ name: supp.name, mainFunction: '', intake: '', caution: '' });
+    }
+  }
+
+  const productList = productDetails.map((p, i) =>
+    `${i + 1}. ${p.name}\n   기능: ${p.mainFunction.slice(0, 500)}\n   복용법: ${p.intake.slice(0, 300)}\n   주의사항: ${p.caution.slice(0, 300)}`
+  ).join('\n\n');
+
+  try {
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`;
+
+    const geminiRes = await fetch(geminiUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{
+          parts: [{
+            text: `당신은 영양학·약학 전문가입니다. 아래 영양제를 동시 복용할 때의 성분 과다/충돌/시너지를 분석하세요.
+
+[등록된 영양제]
+${productList}
+
+분석 규칙:
+1. 각 제품의 "기능" 필드에서 핵심 영양 성분을 추출하세요.
+2. 동일 성분이 여러 제품에 포함되어 일일 상한섭취량(UL)을 초과할 위험이 있으면 warnings에 추가하세요.
+3. 동시 섭취 시 흡수를 방해하는 조합(예: 칼슘↔철분, 아연↔구리)은 cautions에 추가하세요.
+4. 서로 흡수를 촉진하는 좋은 조합은 synergies에 추가하세요.
+5. 확실한 근거가 있는 것만 포함하세요. 불확실하면 제외하세요.
+
+JSON만 응답하세요:
+{
+  "extractedNutrients": [
+    { "product": "제품명", "nutrients": ["성분1", "성분2"] }
+  ],
+  "warnings": [
+    { "nutrient": "성분명", "products": ["제품A", "제품B"], "reason": "이유", "severity": "high" }
+  ],
+  "cautions": [
+    { "nutrients": ["성분A", "성분B"], "products": ["제품A", "제품B"], "reason": "이유", "severity": "medium" }
+  ],
+  "synergies": [
+    { "nutrients": ["성분A", "성분B"], "products": ["제품A", "제품B"], "reason": "이유" }
+  ]
+}`
+          }]
+        }],
+        generationConfig: {
+          temperature: 0.2,
+          maxOutputTokens: 4096,
+          thinkingConfig: { thinkingBudget: 512 },
+        }
+      })
+    });
+
+    if (!geminiRes.ok) {
+      const errText = await geminiRes.text();
+      throw new Error(`Gemini API 오류 (${geminiRes.status}): ${errText.substring(0, 200)}`);
+    }
+
+    const geminiData = await geminiRes.json();
+    const allParts = geminiData.candidates?.[0]?.content?.parts || [];
+    let rawText = '';
+    for (const part of allParts) {
+      if (part.text) rawText += part.text + '\n';
+    }
+
+    // JSON 파싱
+    const stripped = rawText.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+    const jsonMatch = stripped.match(/\{[\s\S]*\}/);
+    let result = { extractedNutrients: [], warnings: [], cautions: [], synergies: [] };
+
+    if (jsonMatch) {
+      try {
+        result = JSON.parse(jsonMatch[0]);
+      } catch (e) {
+        console.warn('  ⚠️ 성분 분석 JSON 파싱 실패:', e.message);
+      }
+    }
+
+    console.log(`  🧪 성분 분석 완료: 경고 ${result.warnings?.length || 0}건, 주의 ${result.cautions?.length || 0}건, 시너지 ${result.synergies?.length || 0}건`);
+
+    res.json({
+      ...result,
+      source: 'gemini',
+    });
+  } catch (err) {
+    console.error('성분 분석 오류:', err.message);
+    res.json({ warnings: [], cautions: [], synergies: [], source: 'error', message: err.message });
+  }
+});
+
 // ─── 원료명 파싱 유틸 ───
 function parseIngredients(rawMaterialStr) {
   const ingredientMap = {

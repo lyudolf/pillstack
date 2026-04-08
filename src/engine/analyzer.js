@@ -110,16 +110,43 @@ export async function analyzeInteractions(supplements) {
     }
   }
 
-  // 4. 점수 계산
+  // 4. Gemini 성분 과다/충돌 분석 (서버 API 호출)
+  let ingredientAnalysis = { warnings: [], cautions: [], synergies: [], extractedNutrients: [] };
+  try {
+    const geminiRes = await fetch('/api/analyze/ingredients', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        supplements: supplements.map(s => ({
+          name: s.name,
+          registNo: s.registNo || s.id?.replace('api-', ''),
+        })),
+      }),
+    });
+    if (geminiRes.ok) {
+      const data = await geminiRes.json();
+      if (data.source !== 'none' && data.source !== 'error') {
+        ingredientAnalysis = data;
+      }
+    }
+  } catch (err) {
+    console.warn('Gemini 성분 분석 실패, 로컬 결과만 표시:', err);
+  }
+
+  // 5. 점수 계산 (Gemini 결과도 반영)
   let score = 100;
   for (const r of results) {
     if (r.type === 'conflict' && r.severity === 'warning') score -= 15;
     else if (r.type === 'conflict' && r.severity === 'caution') score -= 8;
     else if (r.type === 'synergy') score += 3;
   }
+  // Gemini 경고/주의도 점수에 반영
+  score -= (ingredientAnalysis.warnings?.length || 0) * 12;
+  score -= (ingredientAnalysis.cautions?.length || 0) * 5;
+  score += (ingredientAnalysis.synergies?.length || 0) * 2;
   score = Math.max(0, Math.min(100, score));
 
-  // 5. 시너지/충돌 분리 정렬
+  // 6. 시너지/충돌 분리 정렬
   const synergies = results.filter((r) => r.type === 'synergy');
   const conflicts = results.filter((r) => r.type === 'conflict');
 
@@ -128,7 +155,8 @@ export async function analyzeInteractions(supplements) {
     interactions: [...conflicts, ...synergies],
     conflictCount: conflicts.length,
     synergyCount: synergies.length,
-    summary: _generateSummary(score, conflicts.length, synergies.length),
+    ingredientAnalysis,
+    summary: _generateSummary(score, conflicts.length + (ingredientAnalysis.warnings?.length || 0), synergies.length + (ingredientAnalysis.synergies?.length || 0)),
   };
 }
 
