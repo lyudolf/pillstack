@@ -11,6 +11,7 @@ import { renderSettings } from './components/settings.js';
 import { renderSchedule, saveTimingResult, loadTimingResult } from './components/schedule.js';
 import { renderCalendar, setCalendarMonth, handleDayClick } from './components/calendar.js';
 import { showProductDetail, closeProductDetail, getCurrentProduct } from './components/detail.js';
+import { showDisclaimerModal, agreeDisclaimer } from './components/disclaimer.js';
 import { analyzeInteractions, getTimingRecommendation } from './engine/analyzer.js';
 import { publicDataAPI } from './api/publicData.js';
 import { saveReminderTime, initServiceWorker, requestNotificationPermission, syncRemindersToSW, saveScheduleForSW } from './services/reminder.js';
@@ -297,23 +298,41 @@ function render() {
 }
 
 function _renderBottomNav() {
-  const items = [
-    { id: 'home', icon: '🏠', label: '홈' },
-    { id: 'calendar', icon: '📅', label: '캘린더' },
-    { id: 'schedule', icon: '⏰', label: '복용관리' },
-    { id: 'camera', icon: '🏷️', label: '인식' },
-    { id: 'settings', icon: '⚙️', label: '설정' },
-  ];
-
+  const p = state.currentPage;
+  const icons = {
+    home: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>',
+    search: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>',
+    camera: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>',
+    analysis: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>',
+    settings: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>',
+  };
   return `
     <nav class="bottom-nav">
-      ${items.map((item) => `
-        <button class="nav-item ${state.currentPage === item.id ? 'active' : ''}"
-                onclick="window.app.navigate('${item.id}')">
-          <span class="nav-icon">${item.icon}</span>
-          <span>${item.label}</span>
-        </button>
-      `).join('')}
+      <button class="nav-item ${p === 'home' ? 'active' : ''}"
+              onclick="window.app.navigate('home')">
+        <span class="nav-icon">${icons.home}</span>
+        <span>홈</span>
+      </button>
+      <button class="nav-item ${p === 'search' ? 'active' : ''}"
+              onclick="window.app.navigate('search')">
+        <span class="nav-icon">${icons.search}</span>
+        <span>검색</span>
+      </button>
+      <button class="nav-item nav-center-fab ${p === 'camera' ? 'active' : ''}"
+              onclick="window.app.navigate('camera')">
+        <span class="nav-fab-circle">${icons.camera}</span>
+        <span>AI 인식</span>
+      </button>
+      <button class="nav-item ${p === 'analysis' || p === 'schedule' ? 'active' : ''}"
+              onclick="window.app.navigate('analysis')">
+        <span class="nav-icon">${icons.analysis}</span>
+        <span>분석</span>
+      </button>
+      <button class="nav-item ${p === 'calendar' ? 'active' : ''}"
+              onclick="window.app.navigate('calendar')">
+        <span class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span>
+        <span>캘린더</span>
+      </button>
     </nav>
   `;
 }
@@ -346,6 +365,7 @@ window.app = {
     const supp = state.supplements.find(s => s.id === id);
     if (supp) showProductDetail(supp);
   },
+  agreeDisclaimer,
   // Calendar
   calPrev: () => {
     const d = new Date(new Date().getFullYear(), new Date().getMonth());
@@ -404,6 +424,8 @@ async function init() {
       setTimeout(() => splash.remove(), 600);
     }
     render();
+    // 최초 실행 시 법적 고지 표시
+    showDisclaimerModal();
   }, 1200);
 }
 

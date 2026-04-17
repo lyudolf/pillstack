@@ -29,42 +29,39 @@ export function renderSearch() {
   displayedItems = [];
 
   return `
-    <div class="modal-overlay active" id="search-modal">
-      <div class="modal">
-        <div class="modal-handle"></div>
-        <div class="modal-header">
-          <h2>영양제 검색</h2>
-          <button class="modal-close" onclick="window.app.navigate('home')">✕</button>
+    <div class="page active" id="page-search">
+      <div class="page-header">
+        <h1>🔍 영양제 검색</h1>
+        <p class="subtitle">44,000개 이상의 건강기능식품 데이터베이스</p>
+      </div>
+      <div class="page-content">
+        <div class="search-container">
+          <span class="search-icon">🔍</span>
+          <input
+            type="text"
+            class="search-input"
+            id="search-input"
+            placeholder="영양제 이름 또는 브랜드 검색..."
+            autocomplete="off"
+            oninput="window.app.handleSearch(this.value)"
+          />
+          <button class="search-clear" id="search-clear"
+                  onclick="window.app.clearSearch()"
+                  style="display:none;">✕</button>
         </div>
-        <div class="modal-body">
-          <div class="search-container">
-            <span class="search-icon">🔍</span>
-            <input
-              type="text"
-              class="search-input"
-              id="search-input"
-              placeholder="영양제 이름 또는 브랜드 검색..."
-              autocomplete="off"
-              oninput="window.app.handleSearch(this.value)"
-            />
-            <button class="search-clear" id="search-clear"
-                    onclick="window.app.clearSearch()"
-                    style="display:none;">✕</button>
-          </div>
-          <div class="category-filters" id="category-filters">
-            ${Object.entries(CATEGORIES).map(([key, cat]) => `
-              <button class="category-pill ${key === currentCategory ? 'active' : ''}"
-                data-category="${key}"
-                onclick="window.app.filterCategory('${key}')">
-                ${cat.icon} ${cat.label}
-              </button>
-            `).join('')}
-          </div>
-          <div id="search-results" class="search-results">
-            <div class="search-loading-init">
-              <div class="spinner"></div>
-              <span>전체 영양제 목록을 불러오는 중...</span>
-            </div>
+        <div class="category-filters" id="category-filters">
+          ${Object.entries(CATEGORIES).map(([key, cat]) => `
+            <button class="category-pill ${key === currentCategory ? 'active' : ''}"
+              data-category="${key}"
+              onclick="window.app.filterCategory('${key}')">
+              ${cat.icon} ${cat.label}
+            </button>
+          `).join('')}
+        </div>
+        <div id="search-results" class="search-results">
+          <div class="search-loading-init">
+            <div class="spinner"></div>
+            <span>전체 영양제 목록을 불러오는 중...</span>
           </div>
         </div>
       </div>
@@ -192,7 +189,7 @@ function _setupScrollObserver() {
       _loadItems(currentQuery, currentPage + 1, false);
     }
   }, {
-    root: document.querySelector('.modal-body'),
+    root: null,
     threshold: 0.1,
   });
 

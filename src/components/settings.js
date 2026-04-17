@@ -92,9 +92,12 @@ export function renderSettings() {
         <!-- 면책 -->
         <div class="card animate-in animate-in-delay-3" style="margin-top:8px;">
           <p style="font-size:0.7rem;color:var(--text-muted);line-height:1.6;text-align:center;">
-            ⚠️ PillStack는 참고용 영양 정보를 제공합니다.<br>
-            정확한 복용 상담은 의사 또는 약사에게 문의해주세요.<br>
-            <br>
+            ⚖️ <strong style="color:var(--text-secondary);">법적 고지</strong><br><br>
+            PillStack은 <strong style="color:var(--text-secondary);">의료기기가 아니며</strong>, 제공되는 정보는 참고용입니다.<br>
+            성분 분석은 AI 추론 기반이며, 의학적 판단을 대체하지 않습니다.<br>
+            정확한 복용 상담은 의사 또는 약사에게 문의하세요.<br><br>
+            📊 데이터: 식품의약품안전처 공공데이터<br>
+            🤖 AI: Google Gemini 2.5 Flash<br><br>
             © 2026 PillStack
           </p>
         </div>
