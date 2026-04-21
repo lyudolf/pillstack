@@ -15,6 +15,25 @@ export function renderSettings() {
       </div>
       <div class="page-content">
 
+        <!-- 유저 프로필 -->
+        <div class="settings-group animate-in">
+          <div class="settings-group-title">계정</div>
+          <div class="settings-item" id="user-profile-item">
+            <div style="display:flex;align-items:center;gap:12px;">
+              <img src="${window.app?.getState()?.user?.user_metadata?.avatar_url || ''}"
+                   alt="" style="width:36px;height:36px;border-radius:50%;background:var(--bg-glass);"
+                   onerror="this.style.display='none'">
+              <div>
+                <div class="settings-label">${window.app?.getState()?.user?.user_metadata?.full_name || '사용자'}</div>
+                <div class="settings-desc">${window.app?.getState()?.user?.email || ''}</div>
+              </div>
+            </div>
+          </div>
+          <div class="settings-item" style="justify-content:center;">
+            <button class="btn btn-outline" style="width:100%;padding:10px;" onclick="window.app.logout()">로그아웃</button>
+          </div>
+        </div>
+
         <!-- 알림 설정 -->
         <div class="settings-group animate-in">
           <div class="settings-group-title">알림</div>

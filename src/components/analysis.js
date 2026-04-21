@@ -6,13 +6,42 @@ import { loadReminders } from '../services/reminder.js';
 
 export function renderAnalysis(analysisResult, timingResult) {
   if (!analysisResult) {
+    const suppCount = window.app?.getState()?.supplements?.length || 0;
+    const canAnalyze = suppCount >= 2;
     return `<div class="page active" id="page-analysis">
-      <div class="page-content"><div class="empty-state"><p>분석 결과가 없습니다.</p></div></div>
+      <div class="page-header">
+        <h1>🔬 분석</h1>
+      </div>
+      <div class="page-content">
+        <div class="empty-state" style="padding:48px 24px;">
+          <div style="font-size:3.5rem;margin-bottom:20px;opacity:0.8;">🧬</div>
+          <h2 style="font-size:1.1rem;font-weight:700;margin-bottom:10px;">
+            ${suppCount === 0 ? '영양제를 먼저 등록해주세요' : suppCount === 1 ? '영양제 1개가 등록됨' : `영양제 ${suppCount}개 등록됨`}
+          </h2>
+          <p style="font-size:0.82rem;color:var(--text-secondary);line-height:1.6;margin-bottom:28px;">
+            ${suppCount < 2
+              ? '홈에서 영양제를 2개 이상 등록하면\n병용 시너지 · 결핍 체크 · 복용 스케줄을\nAI가 분석해드려요.'
+              : `${suppCount}개의 영양제를 분석할 준비가 됐어요.\n아래 버튼을 눌러 결과를 확인하세요.`}
+          </p>
+          ${canAnalyze ? `
+            <button class="btn-primary" onclick="window.app.startAnalysis()" style="max-width:280px;margin:0 auto;">
+              🔍 성분 분석 시작하기
+            </button>
+          ` : `
+            <button class="btn-cta-secondary" onclick="window.app.navigate('search')" style="max-width:280px;margin:0 auto;">
+              + 영양제 검색하기
+            </button>
+          `}
+        </div>
+      </div>
     </div>`;
   }
 
   const { score, interactions, conflictCount, synergyCount, summary, ingredientAnalysis } = analysisResult;
   const scoreClass = score >= 80 ? 'good' : score >= 60 ? 'warn' : 'bad';
+  const deficiencies = ingredientAnalysis?.deficiencies || [];
+  const missingCount = deficiencies.filter(d => d.status === 'missing').length;
+  const partialCount = deficiencies.filter(d => d.status === 'partial').length;
 
   return `
     <div class="page active" id="page-analysis">
@@ -52,36 +81,54 @@ export function renderAnalysis(analysisResult, timingResult) {
           </div>
         </div>
 
-        <!-- Interactions -->
-        ${interactions.length > 0 ? `
-          <div class="section-title animate-in animate-in-delay-2">
-            <span class="section-icon">🔗</span>
-            성분 상호작용
-          </div>
-          <div class="interaction-list">
-            ${interactions.map((item, i) => _renderInteractionCard(item, i)).join('')}
-          </div>
-        ` : ''}
+        <!-- Tab Navigation -->
+        <div class="analysis-tabs animate-in animate-in-delay-2">
+          <button class="analysis-tab active" data-tab="deep" onclick="window.app.switchAnalysisTab('deep')">
+            🧪 심층 분석
+          </button>
+          <button class="analysis-tab" data-tab="deficiency" onclick="window.app.switchAnalysisTab('deficiency')">
+            🧬 결핍 영양소 ${missingCount > 0 ? '<span class="tab-badge">' + missingCount + '</span>' : ''}
+          </button>
+        </div>
 
-        <!-- Gemini 성분 분석 결과 -->
-        ${_renderIngredientAnalysis(ingredientAnalysis)}
+        <!-- Tab: 심층 분석 -->
+        <div class="analysis-tab-content" id="tab-deep">
+          <!-- Interactions -->
+          ${interactions.length > 0 ? `
+            <div class="section-title animate-in animate-in-delay-2">
+              <span class="section-icon">🔗</span>
+              성분 상호작용
+            </div>
+            <div class="interaction-list">
+              ${interactions.map((item, i) => _renderInteractionCard(item, i)).join('')}
+            </div>
+          ` : ''}
 
-        <!-- Timing Recommendation -->
-        ${timingResult ? `
-          <div class="schedule-section animate-in animate-in-delay-3">
-            <h3><span>⏰</span> 추천 복용 스케줄</h3>
-            ${_renderTimeline(timingResult)}
-            ${timingResult.notes?.length > 0 ? `
-              <div style="margin-top:16px;">
-                ${timingResult.notes.map((note) => `
-                  <div class="card" style="margin-bottom:8px;font-size:0.8rem;color:var(--text-secondary);line-height:1.5;">
-                    ${note}
-                  </div>
-                `).join('')}
-              </div>
-            ` : ''}
-          </div>
-        ` : ''}
+          <!-- Gemini 성분 분석 결과 -->
+          ${_renderIngredientAnalysis(ingredientAnalysis)}
+
+          <!-- Timing Recommendation -->
+          ${timingResult ? `
+            <div class="schedule-section animate-in animate-in-delay-3">
+              <h3><span>⏰</span> 추천 복용 스케줄</h3>
+              ${_renderTimeline(timingResult)}
+              ${timingResult.notes?.length > 0 ? `
+                <div style="margin-top:16px;">
+                  ${timingResult.notes.map((note) => `
+                    <div class="card" style="margin-bottom:8px;font-size:0.8rem;color:var(--text-secondary);line-height:1.5;">
+                      ${note}
+                    </div>
+                  `).join('')}
+                </div>
+              ` : ''}
+            </div>
+          ` : ''}
+        </div>
+
+        <!-- Tab: 결핍 영양소 -->
+        <div class="analysis-tab-content" id="tab-deficiency" style="display:none;">
+          ${_renderDeficiencyTab(deficiencies)}
+        </div>
 
         <div style="height:20px;"></div>
       </div>
@@ -255,4 +302,75 @@ function _renderTimeline(timing) {
       <span>⏰</span> 시간을 설정하면 복용 알림에 반영됩니다
     </div>
   `;
+}
+function _renderDeficiencyTab(deficiencies) {
+  if (!deficiencies || deficiencies.length === 0) {
+    return `
+      <div class="empty-state" style="padding:40px 0;">
+        <div style="font-size:2rem;margin-bottom:12px;">🧬</div>
+        <p>영양소 분석 결과가 없습니다.<br>홈에서 "성분 분석하기"를 실행해주세요.</p>
+      </div>
+    `;
+  }
+
+  const sufficient = deficiencies.filter(d => d.status === 'sufficient');
+  const partial = deficiencies.filter(d => d.status === 'partial');
+  const missing = deficiencies.filter(d => d.status === 'missing');
+
+  return `
+    <div class="ia-section-title" style="margin-bottom:12px;">
+      <span>🧬</span> 핵심 6대 영양소 체크
+    </div>
+    <p style="font-size:0.78rem;color:var(--text-secondary);margin-bottom:16px;line-height:1.5;">
+      등록된 영양제를 기준으로 핵심 영양소의 섭취 여부를 분석했어요.
+    </p>
+
+    ${missing.length > 0 ? `
+      <div class="deficiency-section-label missing-label">🔴 미섭취 영양소 (${missing.length})</div>
+      <div class="deficiency-grid">
+        ${missing.map((d, i) => _renderDeficiencyCard(d, i)).join('')}
+      </div>
+    ` : ''}
+
+    ${partial.length > 0 ? `
+      <div class="deficiency-section-label partial-label">🟡 부분 충족 (${partial.length})</div>
+      <div class="deficiency-grid">
+        ${partial.map((d, i) => _renderDeficiencyCard(d, i)).join('')}
+      </div>
+    ` : ''}
+
+    ${sufficient.length > 0 ? `
+      <div class="deficiency-section-label sufficient-label">✅ 충족 (${sufficient.length})</div>
+      <div class="deficiency-grid">
+        ${sufficient.map((d, i) => _renderDeficiencyCard(d, i)).join('')}
+      </div>
+    ` : ''}
+
+    <div class="card" style="margin-top:16px;font-size:0.72rem;color:var(--text-muted);line-height:1.6;">
+      🤖 AI 분석 기반 참고 정보입니다. 개인별 건강 상태에 따라 다를 수 있으니 전문가와 상담하세요.
+    </div>
+  `;
+}
+
+function _renderDeficiencyCard(d, i) {
+  const statusIcon = d.status === 'sufficient' ? '✅' : d.status === 'partial' ? '🟡' : '🔴';
+  const statusLabel = d.status === 'sufficient' ? '충족' : d.status === 'partial' ? '부분 충족' : '미섭취';
+  const statusClass = d.status;
+  return `
+    <div class="deficiency-card ${statusClass} animate-in" style="animation-delay:${0.08*i}s;opacity:0;">
+      <div class="deficiency-header">
+        <span class="deficiency-icon">${statusIcon}</span>
+        <div>
+          <div class="deficiency-name">${d.nutrient}</div>
+          <div class="deficiency-rda">${d.dailyRecommended || ''}</div>
+        </div>
+        <span class="deficiency-status-badge ${statusClass}">${statusLabel}</span>
+      </div>
+      ${d.coveringProducts && d.coveringProducts.length > 0 ? `
+        <div class="deficiency-products">📦 ${d.coveringProducts.join(', ')}</div>
+      ` : ''}
+      ${d.recommendation ? `
+        <div class="deficiency-rec">💡 ${d.recommendation}</div>
+      ` : ''}
+    </div>`;
 }

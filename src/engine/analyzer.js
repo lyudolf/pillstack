@@ -111,7 +111,7 @@ export async function analyzeInteractions(supplements) {
   }
 
   // 4. Gemini 성분 과다/충돌 분석 (서버 API 호출)
-  let ingredientAnalysis = { warnings: [], cautions: [], synergies: [], extractedNutrients: [] };
+  let ingredientAnalysis = { warnings: [], cautions: [], synergies: [], extractedNutrients: [], deficiencies: [] };
   try {
     const geminiRes = await fetch('/api/analyze/ingredients', {
       method: 'POST',
@@ -153,8 +153,8 @@ export async function analyzeInteractions(supplements) {
   return {
     score,
     interactions: [...conflicts, ...synergies],
-    conflictCount: conflicts.length,
-    synergyCount: synergies.length,
+    conflictCount: conflicts.length + (ingredientAnalysis.warnings?.length || 0) + (ingredientAnalysis.cautions?.length || 0),
+    synergyCount: synergies.length + (ingredientAnalysis.synergies?.length || 0),
     ingredientAnalysis,
     summary: _generateSummary(score, conflicts.length + (ingredientAnalysis.warnings?.length || 0), synergies.length + (ingredientAnalysis.synergies?.length || 0)),
   };

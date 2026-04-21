@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#b06adb"/>
+      <stop offset="50%" stop-color="#8B7AEE"/>
+      <stop offset="100%" stop-color="#6B8AF5"/>
+    </linearGradient>
+    <!-- 원 내부 부드러운 글로우 -->
+    <radialGradient id="glow" cx="40%" cy="35%" r="60%">
+      <stop offset="0%" stop-color="rgba(255,255,255,0.12)"/>
+      <stop offset="100%" stop-color="rgba(255,255,255,0)"/>
+    </radialGradient>
+  </defs>
+
+  <!-- 원형 배경 -->
+  <circle cx="256" cy="256" r="232" fill="url(#bg)"/>
+  <circle cx="256" cy="256" r="232" fill="url(#glow)"/>
+
+  <!-- 캡슐 알약 — 수직, 정중앙 -->
+  <!-- 아래쪽 반: 채움 -->
+  <path d="M206,256 L206,326 A50,50 0 0 0 306,326 L306,256 Z" fill="white"/>
+
+  <!-- 위쪽 반: 아웃라인만 -->
+  <path d="M206,256 L206,186 A50,50 0 0 1 306,186 L306,256"
+        fill="none" stroke="white" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- 구분선 -->
+  <line x1="206" y1="256" x2="306" y2="256" stroke="white" stroke-width="4" opacity="0.6"/>
+</svg>

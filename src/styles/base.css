@@ -1,0 +1,176 @@
+/* ═══════════════════════════════════════════
+   PillStack Design System — Base
+   Variables, Reset, Body, App
+   ═══════════════════════════════════════════ */
+
+:root {
+  --bg-primary: #08090a;
+  --bg-secondary: #0f1011;
+  --bg-card: rgba(255, 255, 255, 0.02);
+  --bg-glass: rgba(255, 255, 255, 0.04);
+  --bg-glass-hover: rgba(255, 255, 255, 0.06);
+  --bg-surface: #191a1b;
+  --border-glass: rgba(255, 255, 255, 0.08);
+  --border-glass-hover: rgba(255, 255, 255, 0.12);
+
+  --text-primary: #f7f8f8;
+  --text-secondary: #d0d6e0;
+  --text-muted: #8a8f98;
+  --text-faint: #62666d;
+
+  --accent-blue: #6366f1;
+  --accent-blue-glow: rgba(99, 102, 241, 0.25);
+  --accent-violet: #818cf8;
+  --accent-violet-hover: #a5b4fc;
+  --accent-green: #6366f1;
+  --accent-green-glow: rgba(99, 102, 241, 0.15);
+  --accent-yellow: #818cf8;
+  --accent-yellow-glow: rgba(129, 140, 248, 0.15);
+  --accent-red: #ef4444;
+  --accent-red-glow: rgba(239, 68, 68, 0.15);
+
+  --gradient-main: #6366f1;
+  --gradient-card: rgba(99, 102, 241, 0.08);
+  --gradient-synergy: rgba(129, 140, 248, 0.12);
+  --gradient-caution: rgba(129, 140, 248, 0.08);
+  --gradient-danger: rgba(239, 68, 68, 0.1);
+
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 22px;
+  --radius-full: 9999px;
+
+  --shadow-sm: rgba(0, 0, 0, 0.03) 0px 1.2px 0px 0px;
+  --shadow-md: rgba(0, 0, 0, 0.4) 0px 2px 4px;
+  --shadow-lg: rgba(0, 0, 0, 0.2) 0px 0px 0px 1px;
+  --shadow-glow-blue: 0 0 20px rgba(99, 102, 241, 0.3);
+
+  --transition-fast: 150ms ease;
+  --transition-normal: 250ms ease;
+  --transition-slow: 400ms ease;
+
+  --font-family: 'Pretendard Variable', 'Pretendard', -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-family: var(--font-family);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  letter-spacing: -0.165px;
+  line-height: 1.5;
+  font-weight: 400;
+}
+
+#app {
+  max-width: 480px;
+  margin: 0 auto;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* ─── Animations ─── */
+@keyframes splashPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+@keyframes splashLoad {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(350%); }
+}
+
+@keyframes fabPulse {
+  0%, 100% { box-shadow: var(--shadow-glow-blue), var(--shadow-lg); }
+  50% { box-shadow: 0 0 35px rgba(99, 102, 241, 0.5), var(--shadow-lg); }
+}
+
+@keyframes animate-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-in { animation: animate-in 0.3s ease forwards; }
+.animate-in-delay-1 { animation-delay: 50ms; }
+.animate-in-delay-2 { animation-delay: 100ms; }
+.animate-in-delay-3 { animation-delay: 150ms; }
+.animate-in-delay-4 { animation-delay: 200ms; }
+.animate-in-delay-5 { animation-delay: 250ms; }
+
+/* ─── Splash ─── */
+.splash-screen {
+  position: fixed;
+  inset: 0;
+  background: var(--bg-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  transition: opacity 0.6s ease, visibility 0.6s ease;
+}
+
+.splash-screen.hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.splash-content { text-align: center; }
+
+.splash-icon {
+  display: block;
+  margin: 0 auto 1rem;
+  animation: splashPulse 1.5s ease-in-out infinite;
+}
+
+.splash-title {
+  font-size: 2rem;
+  font-weight: 510;
+  color: var(--text-primary);
+  letter-spacing: -0.704px;
+  line-height: 1.0;
+}
+
+.splash-subtitle {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  margin-top: 0.25rem;
+}
+
+.splash-loader {
+  width: 120px;
+  height: 3px;
+  background: var(--bg-glass);
+  border-radius: var(--radius-full);
+  margin: 1.5rem auto 0;
+  overflow: hidden;
+}
+
+.splash-loader-bar {
+  width: 40%;
+  height: 100%;
+  background: var(--gradient-main);
+  border-radius: var(--radius-full);
+  animation: splashLoad 1.2s ease-in-out infinite;
+}

@@ -4,6 +4,7 @@
 // ═══════════════════════════════════════════
 
 import { CATEGORIES } from '../data/fallbackDB.js';
+import { getSupplementIcon } from '../utils/icons.js';
 
 let searchTimeout = null;
 let currentCategory = 'all';
@@ -31,12 +32,21 @@ export function renderSearch() {
   return `
     <div class="page active" id="page-search">
       <div class="page-header">
-        <h1>🔍 영양제 검색</h1>
+        <h1 style="display:flex;align-items:center;gap:10px;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"/><line x1="22" y1="22" x2="16.65" y2="16.65"/>
+          </svg>
+          영양제 검색
+        </h1>
         <p class="subtitle">44,000개 이상의 건강기능식품 데이터베이스</p>
       </div>
       <div class="page-content">
         <div class="search-container">
-          <span class="search-icon">🔍</span>
+          <span class="search-icon" style="display:flex;align-items:center;justify-content:center;color:#6366f1;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"/><line x1="22" y1="22" x2="16.65" y2="16.65"/>
+            </svg>
+          </span>
           <input
             type="text"
             class="search-input"
@@ -73,6 +83,27 @@ export function renderSearch() {
 export function initSearch() {
   setTimeout(() => {
     _loadItems('', 1, true);
+
+    // 카테고리 필터 마우스 drag-to-scroll
+    const filters = document.getElementById('category-filters');
+    if (filters) {
+      let isDown = false, startX = 0, scrollLeft = 0;
+      filters.addEventListener('mousedown', (e) => {
+        isDown = true;
+        filters.style.cursor = 'grabbing';
+        startX = e.pageX - filters.offsetLeft;
+        scrollLeft = filters.scrollLeft;
+      });
+      filters.addEventListener('mouseleave', () => { isDown = false; filters.style.cursor = 'grab'; });
+      filters.addEventListener('mouseup', () => { isDown = false; filters.style.cursor = 'grab'; });
+      filters.addEventListener('mousemove', (e) => {
+        if (!isDown) return;
+        e.preventDefault();
+        const x = e.pageX - filters.offsetLeft;
+        filters.scrollLeft = scrollLeft - (x - startX);
+      });
+      filters.style.cursor = 'grab';
+    }
   }, 100);
 }
 
@@ -226,16 +257,16 @@ function _renderResults(total) {
 
   const itemsHtml = results.map((s) => {
     const isAdded = addedIds.has(s.id);
-    const categoryInfo = CATEGORIES[s.category] || CATEGORIES.vitamin;
+    const categoryInfo = CATEGORIES[s.category] || { icon: '💊', label: '건강기능식품' };
     const isFromAPI = s.source === 'api';
 
     return `
       <div class="search-result-item ${isAdded ? 'added' : ''}"
            onclick="window.app.showDetail('${s.id}')">
-        <div class="result-icon">${s.icon}</div>
+        <div class="result-icon">${getSupplementIcon(s.icon)}</div>
         <div class="result-info">
-          <div class="result-name">${s.name} ${isAdded ? '<span class="added-badge">추가됨</span>' : ''}</div>
-          <div class="result-brand">${s.brand}${isFromAPI ? ' · 🌐 공공데이터' : ''}</div>
+          <div class="result-name">${s.name} ${isAdded ? '<span class="added-badge">Stack!</span>' : ''}</div>
+          <div class="result-brand">${s.brand}</div>
           <div class="result-tags">
             <span class="tag tag-${s.category}">${categoryInfo.icon} ${categoryInfo.label}</span>
             ${s.ingredients?.length ? `<span class="tag">성분 ${s.ingredients.length}종</span>` : ''}

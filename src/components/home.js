@@ -2,6 +2,7 @@
 
 import { state, addSupplement, removeSupplement } from '../main.js';
 import { getTodaySchedule } from '../services/reminder.js';
+import { getSupplementIcon } from '../utils/icons.js';
 
 export function renderHome() {
   const supplements = state.supplements;
@@ -32,23 +33,9 @@ function _renderHeader() {
 
   return `
     <div class="home-header">
-      <div class="home-header-top">
-        <div class="home-logo">
-          <span class="home-logo-icon">💊</span>
-          <span class="home-logo-text">PillStack</span>
-        </div>
-        <div class="home-header-actions">
-          <button class="home-noti-btn" onclick="window.app.showToast('🔔 알림 기능 준비 중', 'info')">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-          </button>
-          <button class="home-noti-btn" onclick="window.app.navigate('settings')">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-          </button>
-        </div>
-      </div>
       <div class="home-greeting">
+        <h2 class="home-date"><span class="greeting-highlight">${month}월 ${day}일 ${weekday}</span></h2>
         <h1>${greeting}<br><span class="greeting-highlight">오늘도 건강한 하루</span> 되세요!</h1>
-        <p class="home-date">${month}월 ${day}일 ${weekday}</p>
       </div>
     </div>
   `;
@@ -59,7 +46,7 @@ function _renderEmpty() {
     <div class="empty-state-v2 animate-in">
       <div class="empty-pill-art">
         <div class="pill-circle">
-          <span class="pill-icon-main">💊</span>
+          <img src="/icons/logo.svg" alt="" class="pill-icon-main" style="width:48px;height:48px;" />
           <span class="pill-icon-sub">📄</span>
           <span class="pill-plus">+</span>
         </div>
@@ -97,10 +84,11 @@ function _renderTodaySchedule() {
   } catch (e) { /* ignore */ }
 
   return `
+    <div class="section-title animate-in animate-in-delay-1">
+      <span class="section-icon">⏰</span>
+      오늘의 복용 스케줄
+    </div>
     <div class="schedule-card animate-in animate-in-delay-1" style="margin-bottom:20px;">
-      <div class="schedule-card-title">
-        <span>⏰</span> 오늘의 복용 스케줄
-      </div>
       ${schedule.map(slot => `
         <div class="schedule-slot-header">
           <span class="schedule-slot-time">${slot.time}</span>
@@ -111,12 +99,12 @@ function _renderTodaySchedule() {
           return `
             <div class="schedule-item ${isDone ? 'done' : ''}">
               <div class="schedule-item-info">
-                <span class="schedule-item-icon">${s.icon}</span>
+                <span class="schedule-item-icon">${getSupplementIcon(s.icon)}</span>
                 <span class="schedule-item-name">${s.name}</span>
               </div>
               <button class="dose-check-btn ${isDone ? 'checked' : ''}"
                       onclick="window.app.toggleDoseCheck('${s.id || s.name}')">
-                ${isDone ? '✓ 완료' : '먹었어요'}
+                ${isDone ? 'Stack!' : '먹었어요'}
               </button>
             </div>
           `;
@@ -137,7 +125,7 @@ function _renderShelf(supplements) {
         <div class="supplement-card animate-in animate-in-delay-${(i % 4) + 1}" data-id="${s.id}"
              onclick="window.app.showShelfDetail('${s.id}')" style="cursor:pointer;">
           <button class="remove-btn" onclick="event.stopPropagation(); window.app.removeSupplement('${s.id}')" title="삭제">✕</button>
-          <div class="icon">${s.icon}</div>
+          <div class="icon">${getSupplementIcon(s.icon)}</div>
           <div class="name">${s.name}</div>
           <div class="brand">${s.brand}</div>
         </div>

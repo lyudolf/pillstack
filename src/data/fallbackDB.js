@@ -4,13 +4,14 @@
 // ═══════════════════════════════════════════
 
 export const CATEGORIES = {
-  all:       { label: '전체',       icon: '💊' },
-  vitamin:   { label: '비타민',     icon: '🍊' },
-  probiotic: { label: '유산균/장',  icon: '🦠' },
-  herbal:    { label: '한방/식물',  icon: '🌿' },
-  mineral:   { label: '미네랄',     icon: '⚡' },
-  omega:     { label: '지방산',     icon: '🐟' },
-  function:  { label: '기능성',     icon: '🦴' },
+  all:       { label: '전체',         icon: '💊' },
+  vitamin:   { label: '비타민',       icon: '🍊' },
+  probiotic: { label: '유산균/장',    icon: '🦠' },
+  herbal:    { label: '한방/식물',    icon: '🌿' },
+  mineral:   { label: '미네랄',       icon: '⚡' },
+  omega:     { label: '지방산',       icon: '🐟' },
+  function:  { label: '기능성',       icon: '🦴' },
+  etc:       { label: '건강기능식품', icon: '💊' },
 };
 
 // 한국 인기 영양제 30종

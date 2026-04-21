@@ -2,7 +2,7 @@
 // MediCheck - Main Application Controller
 // ═══════════════════════════════════════════
 
-import './style.css';
+
 import { renderHome } from './components/home.js';
 import { renderSearch, handleSearch, filterCategory, clearSearch, getSupplementById, initSearch } from './components/search.js';
 import { renderCamera, initCamera, capturePhoto, handleImageUpload, retakePhoto, startOCR, destroyCamera } from './components/camera.js';
@@ -12,9 +12,11 @@ import { renderSchedule, saveTimingResult, loadTimingResult } from './components
 import { renderCalendar, setCalendarMonth, handleDayClick } from './components/calendar.js';
 import { showProductDetail, closeProductDetail, getCurrentProduct } from './components/detail.js';
 import { showDisclaimerModal, agreeDisclaimer } from './components/disclaimer.js';
+import { renderLogin } from './components/login.js';
 import { analyzeInteractions, getTimingRecommendation } from './engine/analyzer.js';
 import { publicDataAPI } from './api/publicData.js';
 import { saveReminderTime, initServiceWorker, requestNotificationPermission, syncRemindersToSW, saveScheduleForSW } from './services/reminder.js';
+import { signInWithGoogle, signInWithKakao, signOut, getSession, onAuthStateChange } from './lib/supabase.js';
 
 // ─── State Management ───
 const STORAGE_KEY = 'medicheck_supplements';
@@ -25,6 +27,7 @@ export const state = {
   analysisResult: null,
   timingResult: null,
   apiConnected: false,
+  user: null,
 };
 
 function loadState() {
@@ -34,6 +37,8 @@ function loadState() {
     // 저장된 분석 결과 복원
     const savedTiming = loadTimingResult();
     if (savedTiming) state.timingResult = savedTiming;
+    const savedAnalysis = localStorage.getItem('pillstack_analysis_result');
+    if (savedAnalysis) state.analysisResult = JSON.parse(savedAnalysis);
   } catch (e) {
     console.warn('로컬 데이터 로드 실패:', e);
   }
@@ -65,6 +70,9 @@ export function addSupplement(supplement) {
   }
   state.supplements.push(supplement);
   saveState();
+  // 영양제 변경 시 이전 분석 무효화
+  state.analysisResult = null;
+  localStorage.removeItem('pillstack_analysis_result');
   showToast(`✅ ${supplement.name} 추가됨!`, 'success');
 }
 
@@ -74,6 +82,9 @@ export function removeSupplement(id) {
     const name = state.supplements[idx].name;
     state.supplements.splice(idx, 1);
     saveState();
+    // 영양제 변경 시 이전 분석 무효화
+    state.analysisResult = null;
+    localStorage.removeItem('pillstack_analysis_result');
     showToast(`🗑️ ${name} 삭제됨`, 'info');
     render();
   }
@@ -91,7 +102,8 @@ async function startAnalysis() {
   try {
     state.analysisResult = await analyzeInteractions(state.supplements);
     state.timingResult = getTimingRecommendation(state.supplements);
-    // 분석 결과 영구 저장 (복용관리 페이지에서 재사용)
+    // 분석 결과 localStorage 저장
+    localStorage.setItem('pillstack_analysis_result', JSON.stringify(state.analysisResult));
     saveTimingResult(state.timingResult);
     // SW에 스케줄 동기화
     saveScheduleForSW(state.timingResult);
@@ -188,7 +200,7 @@ function exportData() {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `medicheck_backup_${new Date().toISOString().slice(0,10)}.json`;
+  a.download = `medicheck_backup_${new Date().toISOString().slice(0, 10)}.json`;
   a.click();
   URL.revokeObjectURL(url);
   showToast('📤 데이터를 내보냈습니다.', 'success');
@@ -266,6 +278,13 @@ function showLoading(show) {
 // ─── Render ───
 function render() {
   const app = document.getElementById('app');
+
+  // 로그인 안 됐으면 로그인 페이지
+  if (!state.user) {
+    app.innerHTML = renderLogin();
+    return;
+  }
+
   let pageHTML = '';
 
   switch (state.currentPage) {
@@ -294,7 +313,26 @@ function render() {
       pageHTML = renderHome();
   }
 
-  app.innerHTML = pageHTML + _renderBottomNav();
+  app.innerHTML = _renderGlobalHeader() + `<main class="app-content">${pageHTML}</main>` + _renderBottomNav();
+}
+
+function _renderGlobalHeader() {
+  return `
+    <header class="global-header">
+      <div class="home-logo" onclick="window.app.navigate('home')" style="cursor:pointer;">
+        <img src="/icons/icon.png" alt="PillStack" class="home-logo-icon" style="width:36px;height:36px;border-radius:8px;" />
+        <span class="home-logo-text">PillStack</span>
+      </div>
+      <div class="home-header-actions">
+        <button class="home-noti-btn" onclick="window.app.showToast('🔔 알림 기능 준비 중', 'info')">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        </button>
+        <button class="home-noti-btn" onclick="window.app.navigate('settings')">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        </button>
+      </div>
+    </header>
+  `;
 }
 
 function _renderBottomNav() {
@@ -365,6 +403,14 @@ window.app = {
     const supp = state.supplements.find(s => s.id === id);
     if (supp) showProductDetail(supp);
   },
+  switchAnalysisTab: (tabId) => {
+    document.querySelectorAll('.analysis-tab-content').forEach(el => el.style.display = 'none');
+    document.querySelectorAll('.analysis-tab').forEach(el => el.classList.remove('active'));
+    const tab = document.getElementById('tab-' + tabId);
+    if (tab) tab.style.display = 'block';
+    const btn = document.querySelector(`.analysis-tab[data-tab="${tabId}"]`);
+    if (btn) btn.classList.add('active');
+  },
   agreeDisclaimer,
   // Calendar
   calPrev: () => {
@@ -393,11 +439,53 @@ window.app = {
     const msg = handleDayClick(dateStr);
     showToast(msg, 'info');
   },
+  loginWithGoogle: async () => {
+    try {
+      await signInWithGoogle();
+    } catch (e) {
+      showToast('Google 로그인 실패: ' + e.message, 'error');
+    }
+  },
+  loginWithKakao: async () => {
+    try {
+      await signInWithKakao();
+    } catch (e) {
+      showToast('Kakao 로그인 실패: ' + e.message, 'error');
+    }
+  },
+  logout: async () => {
+    try {
+      await signOut();
+      state.user = null;
+      render();
+      showToast('로그아웃 되었습니다.', 'info');
+    } catch (e) {
+      showToast('로그아웃 실패', 'error');
+    }
+  },
 };
 
 // ─── Init ───
 async function init() {
   loadState();
+
+  // Supabase 세션 확인
+  try {
+    const session = await getSession();
+    state.user = session?.user || null;
+  } catch {
+    state.user = null;
+  }
+
+  // 인증 상태 변화 감지
+  onAuthStateChange((event, session) => {
+    state.user = session?.user || null;
+    render();
+    if (event === 'SIGNED_IN') {
+      showToast(`👋 ${state.user?.user_metadata?.full_name || '사용자'}님 환영합니다!`, 'success');
+      showDisclaimerModal();
+    }
+  });
 
   // Service Worker 등록 (푸시 알림용)
   await initServiceWorker();
@@ -424,8 +512,8 @@ async function init() {
       setTimeout(() => splash.remove(), 600);
     }
     render();
-    // 최초 실행 시 법적 고지 표시
-    showDisclaimerModal();
+    // 로그인 상태에서만 법적 고지 표시
+    if (state.user) showDisclaimerModal();
   }, 1200);
 }
 

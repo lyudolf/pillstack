@@ -1,0 +1,122 @@
+/* ═══════════════════════════════════════════
+   PillStack Design System — Icons & Login
+   SVG Wrappers, Login Page
+   ═══════════════════════════════════════════ */
+
+/* ─── SVG Icon Wrappers ─── */
+.supp-icon-wrap {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.supp-icon-wrap svg {
+  width: 24px;
+  height: 24px;
+}
+
+.supplement-card .icon {
+  font-size: 1rem;
+  margin-bottom: 8px;
+}
+
+.schedule-item-icon .supp-icon-wrap {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+}
+
+.schedule-item-icon .supp-icon-wrap svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* ─── Login Page ─── */
+.login-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 40px 24px;
+  text-align: center;
+  background: linear-gradient(135deg, #afcffa 0%, #4446c9 30%, #1b13b4 55%, #4e70a7 100%);
+}
+
+.login-hero { margin-bottom: 100px; }
+
+.login-logo {
+  width: 88px;
+  height: 88px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+}
+
+.login-logo-img {
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+}
+
+.login-title {
+  font-size: 3.5rem;
+  font-weight: 510;
+  color: var(--text-primary);
+  letter-spacing: -0.704px;
+  line-height: 1.0;
+  margin-bottom: 8px;
+}
+
+.login-subtitle { font-size: 1rem; }
+
+.login-actions {
+  width: 100%;
+  max-width: 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.login-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 14px 20px;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  font-family: var(--font-family);
+  font-size: 0.88rem;
+  font-weight: 510;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.login-btn:active { transform: scale(0.98); }
+
+.google-btn {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-primary);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.google-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.kakao-btn {
+  background: #FEE500;
+  color: #3C1E1E;
+  border: none;
+}
+
+.kakao-btn:hover { background: #f0d800; }

@@ -3,6 +3,7 @@
 // 공공데이터 API에서 기능성/섭취방법/주의사항 로드
 // ═══════════════════════════════════════════
 
+import { getSupplementIcon } from '../utils/icons.js';
 import { CATEGORIES } from '../data/fallbackDB.js';
 
 let currentProduct = null;
@@ -78,7 +79,7 @@ function _renderDetailModal() {
         <!-- 헤더 -->
         <div class="detail-header">
           <div class="detail-icon-wrap">
-            <span class="detail-icon">${p.icon}</span>
+            <span class="detail-icon">${getSupplementIcon(p.icon)}</span>
           </div>
           <div class="detail-title-area">
             <h2 class="detail-title">${p.name}</h2>
