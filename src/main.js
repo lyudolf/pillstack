@@ -17,6 +17,7 @@ import { analyzeInteractions, getTimingRecommendation } from './engine/analyzer.
 import { publicDataAPI } from './api/publicData.js';
 import { saveReminderTime, initServiceWorker, requestNotificationPermission, syncRemindersToSW, saveScheduleForSW } from './services/reminder.js';
 import { signInWithGoogle, signInWithKakao, signOut, getSession, onAuthStateChange } from './lib/supabase.js';
+import { fetchSupplements, insertSupplement, deleteSupplement, fetchAnalysis, upsertAnalysis, deleteAnalysis } from './services/db.js';
 
 // ─── State Management ───
 const STORAGE_KEY = 'medicheck_supplements';
@@ -34,13 +35,35 @@ function loadState() {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) state.supplements = JSON.parse(saved);
-    // 저장된 분석 결과 복원
     const savedTiming = loadTimingResult();
     if (savedTiming) state.timingResult = savedTiming;
     const savedAnalysis = localStorage.getItem('pillstack_analysis_result');
     if (savedAnalysis) state.analysisResult = JSON.parse(savedAnalysis);
   } catch (e) {
-    console.warn('로컬 데이터 로드 실패:', e);
+    console.warn('로컈 데이터 로드 실패:', e);
+  }
+}
+
+// 로그인 유저 Supabase 데이터 복원
+async function loadUserData(userId) {
+  try {
+    const [supplements, analysis] = await Promise.all([
+      fetchSupplements(userId),
+      fetchAnalysis(userId),
+    ]);
+    if (supplements.length > 0) {
+      state.supplements = supplements;
+      saveState(); // localStorage 동기화
+    }
+    if (analysis) {
+      state.analysisResult = analysis.result_data;
+      state.timingResult = analysis.timing_data;
+      if (analysis.result_data) localStorage.setItem('pillstack_analysis_result', JSON.stringify(analysis.result_data));
+      if (analysis.timing_data) saveTimingResult(analysis.timing_data);
+    }
+    render();
+  } catch (e) {
+    console.warn('Supabase 데이터 로드 실패 (localhost fallback):', e);
   }
 }
 
@@ -70,9 +93,13 @@ export function addSupplement(supplement) {
   }
   state.supplements.push(supplement);
   saveState();
-  // 영양제 변경 시 이전 분석 무효화
   state.analysisResult = null;
   localStorage.removeItem('pillstack_analysis_result');
+  // Supabase 동기화 (로그인 시)
+  if (state.user) {
+    insertSupplement(state.user.id, supplement).catch(e => console.warn('Supabase insert 실패:', e));
+    deleteAnalysis(state.user.id).catch(() => {});
+  }
   showToast(`✅ ${supplement.name} 추가됨!`, 'success');
 }
 
@@ -82,9 +109,13 @@ export function removeSupplement(id) {
     const name = state.supplements[idx].name;
     state.supplements.splice(idx, 1);
     saveState();
-    // 영양제 변경 시 이전 분석 무효화
     state.analysisResult = null;
     localStorage.removeItem('pillstack_analysis_result');
+    // Supabase 동기화 (로그인 시)
+    if (state.user) {
+      deleteSupplement(state.user.id, id).catch(e => console.warn('Supabase delete 실패:', e));
+      deleteAnalysis(state.user.id).catch(() => {});
+    }
     showToast(`🗑️ ${name} 삭제됨`, 'info');
     render();
   }
@@ -102,11 +133,15 @@ async function startAnalysis() {
   try {
     state.analysisResult = await analyzeInteractions(state.supplements);
     state.timingResult = getTimingRecommendation(state.supplements);
-    // 분석 결과 localStorage 저장
+    // localStorage 저장
     localStorage.setItem('pillstack_analysis_result', JSON.stringify(state.analysisResult));
     saveTimingResult(state.timingResult);
-    // SW에 스케줄 동기화
     saveScheduleForSW(state.timingResult);
+    // Supabase 저장 (로그인 시)
+    if (state.user) {
+      upsertAnalysis(state.user.id, state.analysisResult, state.timingResult)
+        .catch(e => console.warn('Supabase analysis upsert 실패:', e));
+    }
     state.currentPage = 'analysis';
     render();
   } catch (err) {
@@ -478,12 +513,23 @@ async function init() {
   }
 
   // 인증 상태 변화 감지
-  onAuthStateChange((event, session) => {
+  onAuthStateChange(async (event, session) => {
     state.user = session?.user || null;
-    render();
-    if (event === 'SIGNED_IN') {
+    if (event === 'SIGNED_IN' && state.user) {
       showToast(`👋 ${state.user?.user_metadata?.full_name || '사용자'}님 환영합니다!`, 'success');
       showDisclaimerModal();
+      // Supabase에서 유저 데이터 복원
+      await loadUserData(state.user.id);
+    } else if (event === 'SIGNED_OUT') {
+      // 로그아웃 시 상태 초기화
+      state.supplements = [];
+      state.analysisResult = null;
+      state.timingResult = null;
+      localStorage.removeItem('medicheck_supplements');
+      localStorage.removeItem('pillstack_analysis_result');
+      render();
+    } else {
+      render();
     }
   });
 
