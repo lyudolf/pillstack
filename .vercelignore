@@ -1,0 +1,8 @@
+# 대용량 로컬 DB (Supabase로 마이그레이션 완료)
+data/supplements-db.json
+
+# 개발용 스크립트
+scripts/
+
+# 로컬 백엔드 서버 (Vercel Serverless로 대체)
+server.js
