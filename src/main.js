@@ -533,24 +533,7 @@ async function init() {
     }
   });
 
-  // Service Worker 등록 (푸시 알림용)
-  await initServiceWorker();
-
-  // Check backend API status
-  try {
-    const connected = await publicDataAPI.checkHealth();
-    state.apiConnected = connected;
-  } catch {
-    state.apiConnected = false;
-  }
-
-  // SW에서 복용 완료 이벤트 수신
-  window.addEventListener('dose-checked', (e) => {
-    render();
-    showToast('✅ 복용 완료 처리됨!', 'success');
-  });
-
-  // Hide splash after brief delay
+  // 스플래시 즉시 제거 후 렌더 (health check 기다리지 않음)
   setTimeout(() => {
     const splash = document.getElementById('splash-screen');
     if (splash) {
@@ -558,9 +541,16 @@ async function init() {
       setTimeout(() => splash.remove(), 600);
     }
     render();
-    // 로그인 상태에서만 법적 고지 표시
     if (state.user) showDisclaimerModal();
   }, 1200);
+
+  // Service Worker 등록 (백그라운드)
+  initServiceWorker().catch(console.warn);
+
+  // Health check 백그라운드 (UI 블로킹 없음)
+  publicDataAPI.checkHealth()
+    .then(connected => { state.apiConnected = connected; })
+    .catch(() => { state.apiConnected = false; });
 }
 
 document.addEventListener('DOMContentLoaded', init);
