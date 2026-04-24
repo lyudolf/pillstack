@@ -2,9 +2,14 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "framework": "vite",
+  "crons": [
+    { "path": "/api/cron/cleanup", "schedule": "0 0 * * *" }
+  ],
   "rewrites": [
-    { "source": "/api/health",             "destination": "/api/health.js" },
-    { "source": "/api/supplements/search", "destination": "/api/supplements/search.js" },
-    { "source": "/api/supplements/detail", "destination": "/api/supplements/detail.js" }
+    { "source": "/api/health",              "destination": "/api/health.js" },
+    { "source": "/api/supplements/search",  "destination": "/api/supplements/search.js" },
+    { "source": "/api/supplements/detail",  "destination": "/api/supplements/detail.js" },
+    { "source": "/api/account/delete",      "destination": "/api/account/delete.js" },
+    { "source": "/api/cron/cleanup",        "destination": "/api/cron/cleanup.js" }
   ]
 }

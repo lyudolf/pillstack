@@ -83,6 +83,13 @@ export function renderSettings() {
             </div>
             <div class="result-arrow">›</div>
           </div>
+          <div class="settings-item" onclick="window.app.requestDeleteAccount()" style="border-top:1px solid rgba(255,80,80,0.15);">
+            <div>
+              <div class="settings-label" style="color:#ff4d4d;font-weight:600;">⚠️ 계정 삭제</div>
+              <div class="settings-desc">탈퇴 요청 후 7일 뒤 모든 데이터가 영구 삭제됩니다</div>
+            </div>
+            <div class="result-arrow">›</div>
+          </div>
         </div>
 
         <!-- 앱 정보 -->

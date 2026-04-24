@@ -498,6 +498,68 @@ window.app = {
       showToast('로그아웃 실패', 'error');
     }
   },
+  requestDeleteAccount: async () => {
+    if (!state.user) {
+      showToast('로그인이 필요합니다.', 'error');
+      return;
+    }
+    const confirmed = confirm(
+      '⚠️ 정말 계정을 삭제하시겠습니까?\n\n' +
+      '• 요청 후 7일 뒤 모든 데이터가 영구 삭제됩니다.\n' +
+      '• 7일 내 재로그인하면 취소됩니다.\n' +
+      '• 삭제된 데이터는 복구할 수 없습니다.'
+    );
+    if (!confirmed) return;
+
+    try {
+      const session = await getSession();
+      const res = await fetch('/api/account/delete', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ reason: '사용자 직접 요청' }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
+      await signOut();
+      state.user = null;
+      state.supplements = [];
+      state.analysisResult = null;
+      localStorage.clear();
+      render();
+      showToast('탈퇴 요청이 접수되었습니다. 7일 후 모든 데이터가 삭제됩니다.', 'info');
+    } catch (e) {
+      showToast('탈퇴 요청 실패: ' + e.message, 'error');
+    }
+  },
+  getState: () => state,
+  toggleSetting: (key, value) => {
+    localStorage.setItem(key, value);
+    render();
+  },
+  clearAllData: () => {
+    if (!confirm('등록된 영양제 목록을 모두 삭제하시겠습니까?')) return;
+    state.supplements = [];
+    state.analysisResult = null;
+    localStorage.removeItem('medicheck_supplements');
+    localStorage.removeItem('pillstack_analysis_result');
+    render();
+    showToast('데이터가 초기화되었습니다.', 'info');
+  },
+  exportData: () => {
+    const data = JSON.stringify(state.supplements, null, 2);
+    const blob = new Blob([data], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'pillstack-data.json';
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('데이터를 내보냈습니다.', 'success');
+  },
 };
 
 // ─── Init ───
