@@ -120,3 +120,19 @@
 }
 
 .kakao-btn:hover { background: #f0d800; }
+
+.login-footer {
+  margin-top: 32px;
+  max-width: 300px;
+}
+
+.login-footer p {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.login-footer a {
+  color: var(--accent-violet, #7170ff);
+  text-decoration: underline;
+}
