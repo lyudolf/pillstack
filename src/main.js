@@ -504,36 +504,7 @@ window.app = {
 async function init() {
   loadState();
 
-  // Supabase 세션 확인
-  try {
-    const session = await getSession();
-    state.user = session?.user || null;
-  } catch {
-    state.user = null;
-  }
-
-  // 인증 상태 변화 감지
-  onAuthStateChange(async (event, session) => {
-    state.user = session?.user || null;
-    if (event === 'SIGNED_IN' && state.user) {
-      showToast(`👋 ${state.user?.user_metadata?.full_name || '사용자'}님 환영합니다!`, 'success');
-      showDisclaimerModal();
-      // Supabase에서 유저 데이터 복원
-      await loadUserData(state.user.id);
-    } else if (event === 'SIGNED_OUT') {
-      // 로그아웃 시 상태 초기화
-      state.supplements = [];
-      state.analysisResult = null;
-      state.timingResult = null;
-      localStorage.removeItem('medicheck_supplements');
-      localStorage.removeItem('pillstack_analysis_result');
-      render();
-    } else {
-      render();
-    }
-  });
-
-  // 스플래시 즉시 제거 후 렌더 (health check 기다리지 않음)
+  // 스플래시 제거 + 렌더는 어떤 에러가 나도 반드시 실행
   setTimeout(() => {
     const splash = document.getElementById('splash-screen');
     if (splash) {
@@ -543,6 +514,37 @@ async function init() {
     render();
     if (state.user) showDisclaimerModal();
   }, 1200);
+
+  // Supabase 세션 확인 (실패해도 앱 진행)
+  try {
+    const session = await getSession();
+    state.user = session?.user || null;
+  } catch {
+    state.user = null;
+  }
+
+  // 인증 상태 변화 감지
+  try {
+    onAuthStateChange(async (event, session) => {
+      state.user = session?.user || null;
+      if (event === 'SIGNED_IN' && state.user) {
+        showToast(`👋 ${state.user?.user_metadata?.full_name || '사용자'}님 환영합니다!`, 'success');
+        showDisclaimerModal();
+        await loadUserData(state.user.id);
+      } else if (event === 'SIGNED_OUT') {
+        state.supplements = [];
+        state.analysisResult = null;
+        state.timingResult = null;
+        localStorage.removeItem('medicheck_supplements');
+        localStorage.removeItem('pillstack_analysis_result');
+        render();
+      } else {
+        render();
+      }
+    });
+  } catch (e) {
+    console.warn('Auth listener 등록 실패:', e);
+  }
 
   // Service Worker 등록 (백그라운드)
   initServiceWorker().catch(console.warn);

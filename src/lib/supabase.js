@@ -7,11 +7,23 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
+let supabase;
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn('⚠️ Supabase 환경 변수가 설정되지 않았습니다.');
+  console.warn('⚠️ Supabase 환경 변수가 설정되지 않았습니다. 오프라인 모드로 실행합니다.');
+  // 환경변수 없을 때 앱 크래시 방지용 noop client
+  const noop = () => Promise.resolve({ data: null, error: null });
+  const noopAuth = {
+    signInWithOAuth: noop, signOut: noop,
+    getSession: () => Promise.resolve({ data: { session: null }, error: null }),
+    getUser: () => Promise.resolve({ data: { user: null }, error: null }),
+    onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
+  };
+  supabase = { auth: noopAuth, from: () => ({ select: noop, insert: noop, delete: noop, upsert: noop }) };
+} else {
+  supabase = createClient(supabaseUrl, supabaseAnonKey);
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export { supabase };
 
 // ─── Auth Helpers ───
 
