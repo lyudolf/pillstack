@@ -427,13 +427,9 @@ window.app = {
   retakePhoto,
   startOCR,
   refreshApiStatus,
-  clearAllData,
-  toggleSetting,
-  exportData,
   setReminderTime,
   toggleDoseCheck,
   showToast,
-  getState: () => state,
   showShelfDetail: (id) => {
     const supp = state.supplements.find(s => s.id === id);
     if (supp) showProductDetail(supp);
