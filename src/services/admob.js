@@ -12,8 +12,8 @@ const AD_IDS = {
   interstitial: 'ca-app-pub-3940256099942544/1033173712', // 미사용 (추후 필요 시)
 };
 
-// 하루 무료 분석 횟수
-const FREE_DAILY_LIMIT = 3;
+// 최초 무료 분석 횟수 (총 1회, 리셋 없음)
+const FREE_TOTAL_LIMIT = 1;
 
 /**
  * AdMob 초기화 (Capacitor 네이티브 환경에서만 동작)
@@ -98,27 +98,18 @@ export async function showRewardedAd() {
 }
 
 /**
- * 오늘 분석 횟수 확인
+ * 총 분석 횟수 확인 (리셋 없음)
  */
-export function getTodayAnalysisCount() {
-  const today = new Date().toISOString().split('T')[0];
-  const data = JSON.parse(localStorage.getItem('pillstack_analysis_usage') || '{}');
-  if (data.date !== today) return 0;
-  return data.count || 0;
+export function getTotalAnalysisCount() {
+  return parseInt(localStorage.getItem('pillstack_analysis_total') || '0', 10);
 }
 
 /**
  * 분석 횟수 증가
  */
 export function incrementAnalysisCount() {
-  const today = new Date().toISOString().split('T')[0];
-  const data = JSON.parse(localStorage.getItem('pillstack_analysis_usage') || '{}');
-  if (data.date !== today) {
-    localStorage.setItem('pillstack_analysis_usage', JSON.stringify({ date: today, count: 1 }));
-  } else {
-    data.count = (data.count || 0) + 1;
-    localStorage.setItem('pillstack_analysis_usage', JSON.stringify(data));
-  }
+  const count = getTotalAnalysisCount() + 1;
+  localStorage.setItem('pillstack_analysis_total', String(count));
 }
 
 /**
@@ -126,11 +117,11 @@ export function incrementAnalysisCount() {
  * @returns {{ allowed: boolean, remaining: number, needAd: boolean }}
  */
 export function checkAnalysisQuota() {
-  const count = getTodayAnalysisCount();
-  if (count < FREE_DAILY_LIMIT) {
-    return { allowed: true, remaining: FREE_DAILY_LIMIT - count, needAd: false };
+  const count = getTotalAnalysisCount();
+  if (count < FREE_TOTAL_LIMIT) {
+    return { allowed: true, remaining: FREE_TOTAL_LIMIT - count, needAd: false };
   }
   return { allowed: false, remaining: 0, needAd: true };
 }
 
-export { FREE_DAILY_LIMIT, isAdMobReady };
+export { FREE_TOTAL_LIMIT, isAdMobReady };

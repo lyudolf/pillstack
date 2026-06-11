@@ -19,7 +19,7 @@ import { publicDataAPI } from './api/publicData.js';
 import { saveReminderTime, initServiceWorker, requestNotificationPermission, syncRemindersToSW, saveScheduleForSW, loadReminders } from './services/reminder.js';
 import { signInWithGoogle, signInWithKakao, signOut, getSession, onAuthStateChange } from './lib/supabase.js';
 import { fetchSupplements, insertSupplement, deleteSupplement, fetchAnalysis, upsertAnalysis, deleteAnalysis } from './services/db.js';
-import { initAdMob, showRewardedAd, checkAnalysisQuota, incrementAnalysisCount, FREE_DAILY_LIMIT } from './services/admob.js';
+import { initAdMob, showRewardedAd, checkAnalysisQuota, incrementAnalysisCount, FREE_TOTAL_LIMIT } from './services/admob.js';
 import { initPushNotifications } from './services/fcm.js';
 import { initLocalNotifications, scheduleReminders } from './services/localNotification.js';
 import { markAsRead, markAllAsRead, clearAll, getUnreadCount } from './services/notificationStore.js';
