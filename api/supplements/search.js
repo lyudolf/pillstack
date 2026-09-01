@@ -37,6 +37,11 @@ function parseIngredients(name) {
   return found;
 }
 
+// PostgREST or() 필터 인젝션 방지: 콤마/괄호/별표/퍼센트 등 필터 문법 문자를 공백으로 치환
+function sanitizeLike(s) {
+  return String(s ?? '').replace(/[,()*%\\"']/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   if (req.method === 'OPTIONS') return res.status(200).end();
@@ -76,8 +81,8 @@ export default async function handler(req, res) {
     let allItems = [];
     let totalCount = 0;
 
-    if (keyword && keyword.trim()) {
-      const kw = keyword.trim();
+    if (keyword && sanitizeLike(keyword)) {
+      const kw = sanitizeLike(keyword);
       const words = kw.split(/\s+/).filter(Boolean);
       const noSpace = kw.replace(/\s+/g, '');
 

@@ -40,8 +40,6 @@ export function saveReminderTime(slot, time) {
   const current = loadReminders();
   current[slot] = time;
   localStorage.setItem(REMINDER_KEY, JSON.stringify(current));
-  // Service Worker에 업데이트 전달
-  syncRemindersToSW();
 }
 
 /**
@@ -82,132 +80,9 @@ export function getTodaySchedule(timingResult) {
     .sort((a, b) => a.time.localeCompare(b.time));
 }
 
-// ═══════════════════════════════════════════
-// Service Worker + Push Notification
-// ═══════════════════════════════════════════
-
-let swRegistration = null;
-
-/**
- * Service Worker 등록 + 알림 권한 요청
- */
-export async function initServiceWorker() {
-  if (!('serviceWorker' in navigator)) {
-    console.warn('[Reminder] Service Worker 미지원 브라우저');
-    return false;
-  }
-
-  try {
-    swRegistration = await navigator.serviceWorker.register('/sw.js');
-    console.log('[Reminder] Service Worker 등록 완료');
-
-    // SW에서 메시지 수신 (복용 완료 처리)
-    navigator.serviceWorker.addEventListener('message', (event) => {
-      if (event.data?.type === 'DOSE_CHECKED') {
-        const { slot, todayKey } = event.data;
-        _handleDoseFromSW(slot, todayKey);
-      }
-    });
-
-    // 리마인더 데이터 동기화
-    syncRemindersToSW();
-    return true;
-  } catch (err) {
-    console.error('[Reminder] SW 등록 실패:', err);
-    return false;
-  }
-}
-
-/**
- * 알림 권한 요청
- */
-export async function requestNotificationPermission() {
-  if (!('Notification' in window)) {
-    return 'unsupported';
-  }
-
-  if (Notification.permission === 'granted') {
-    return 'granted';
-  }
-
-  if (Notification.permission === 'denied') {
-    return 'denied';
-  }
-
-  const result = await Notification.requestPermission();
-  return result;
-}
-
-/**
- * 현재 알림 권한 상태
- */
-export function getNotificationStatus() {
-  if (!('Notification' in window)) return 'unsupported';
-  return Notification.permission; // 'default' | 'granted' | 'denied'
-}
-
-/**
- * Service Worker에 리마인더 데이터 동기화
- */
-export function syncRemindersToSW() {
-  if (!navigator.serviceWorker?.controller) return;
-
-  const notiEnabled = localStorage.getItem('medicheck_noti') === 'true';
-
-  // timingResult에서 스케줄 데이터 추출
-  let schedule = [];
-  try {
-    // state에서 직접 접근 불가하므로 별도 키로 저장/로드
-    const saved = localStorage.getItem('medicheck_schedule');
-    if (saved) schedule = JSON.parse(saved);
-  } catch (e) { /* ignore */ }
-
-  navigator.serviceWorker.controller.postMessage({
-    type: 'UPDATE_REMINDERS',
-    data: {
-      reminders: loadReminders(),
-      schedule,
-      notiEnabled,
-    }
-  });
-}
-
-/**
- * 분석 결과의 스케줄을 localStorage에 저장 (SW와 공유용)
- */
-export function saveScheduleForSW(timingResult) {
-  if (!timingResult?.schedule) return;
-
-  const slotMap = { '아침': 'morning', '저녁': 'evening', '취침 전': 'bedtime' };
-  const schedule = timingResult.schedule.map(s => ({
-    slot: slotMap[s.label] || 'morning',
-    supplements: s.supplements.map(sup => ({
-      name: sup.name,
-      icon: sup.icon,
-    })),
-  }));
-
-  localStorage.setItem('medicheck_schedule', JSON.stringify(schedule));
-  syncRemindersToSW();
-}
-
-/**
- * SW에서 복용 완료 메시지 수신 시 처리
- */
-function _handleDoseFromSW(slot, todayKey) {
-  const key = 'medicheck_checked_' + todayKey;
-  let checked = [];
-  try {
-    const saved = localStorage.getItem(key);
-    if (saved) checked = JSON.parse(saved);
-  } catch (e) { /* ignore */ }
-
-  if (!checked.includes(slot)) {
-    checked.push(slot);
-    localStorage.setItem(key, JSON.stringify(checked));
-    // 화면 갱신을 위해 커스텀 이벤트 발생
-    window.dispatchEvent(new CustomEvent('dose-checked', { detail: { slot } }));
-  }
-}
+// 참고: 과거 웹 PWA용 ServiceWorker 알림 시스템(initServiceWorker / syncRemindersToSW /
+// saveScheduleForSW / requestNotificationPermission 등)은 제거되었다.
+// 네이티브 앱에서는 src/services/localNotification.js 의 Capacitor LocalNotifications가
+// 모든 복용 알림을 담당한다. (단일 소스)
 
 export { DEFAULT_TIMES, SLOT_LABELS };

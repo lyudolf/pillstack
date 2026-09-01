@@ -16,7 +16,7 @@ import { renderLogin } from './components/login.js';
 import { renderNotifications } from './components/notifications.js';
 import { analyzeInteractions, getTimingRecommendation } from './engine/analyzer.js';
 import { publicDataAPI } from './api/publicData.js';
-import { saveReminderTime, initServiceWorker, requestNotificationPermission, syncRemindersToSW, saveScheduleForSW, loadReminders } from './services/reminder.js';
+import { saveReminderTime, loadReminders } from './services/reminder.js';
 import { signInWithGoogle, signInWithKakao, signOut, getSession, onAuthStateChange } from './lib/supabase.js';
 import { fetchSupplements, insertSupplement, deleteSupplement, fetchAnalysis, upsertAnalysis, deleteAnalysis } from './services/db.js';
 import { initAdMob, showRewardedAd, checkAnalysisQuota, incrementAnalysisCount, FREE_TOTAL_LIMIT } from './services/admob.js';
@@ -115,7 +115,6 @@ export function addSupplement(supplement) {
   state.timingResult = null;
   localStorage.removeItem('pillstack_analysis_result');
   localStorage.removeItem('medicheck_timing_result');
-  localStorage.removeItem('medicheck_schedule');
   // Supabase 동기화 (로그인 시)
   if (state.user) {
     insertSupplement(state.user.id, enriched).catch(e => console.warn('Supabase insert 실패:', e));
@@ -136,7 +135,6 @@ export function removeSupplement(id) {
     state.timingResult = null;
     localStorage.removeItem('pillstack_analysis_result');
     localStorage.removeItem('medicheck_timing_result');
-    localStorage.removeItem('medicheck_schedule');
     // Supabase 동기화 (로그인 시)
     if (state.user) {
       deleteSupplement(state.user.id, id).catch(e => console.warn('Supabase delete 실패:', e));
@@ -195,7 +193,6 @@ async function startAnalysis() {
     // localStorage 저장
     localStorage.setItem('pillstack_analysis_result', JSON.stringify(state.analysisResult));
     saveTimingResult(state.timingResult);
-    saveScheduleForSW(state.timingResult);
     // 네이티브 로컬 알림 등록
     _scheduleNativeReminders(state.timingResult);
     // Supabase 저장 (로그인 시)
@@ -254,56 +251,8 @@ async function refreshApiStatus() {
   render();
 }
 
-function clearAllData() {
-  if (confirm('모든 데이터를 삭제하시겠습니까?')) {
-    state.supplements = [];
-    state.analysisResult = null;
-    state.timingResult = null;
-    localStorage.removeItem(STORAGE_KEY);
-    showToast('🗑️ 모든 데이터가 초기화되었습니다.', 'info');
-    navigate('home');
-  }
-}
-
-async function toggleSetting(key, value) {
-  localStorage.setItem(key, value);
-
-  // 알림 토글 ON 시 권한 요청 + SW 동기화
-  if (key === 'medicheck_noti' && value) {
-    const permission = await requestNotificationPermission();
-    if (permission === 'denied') {
-      localStorage.setItem(key, false);
-      showToast('⚠️ 알림 권한이 차단되어 있습니다. 브라우저 설정에서 허용해주세요.', 'error');
-      render();
-      return;
-    }
-    if (permission === 'granted') {
-      syncRemindersToSW();
-      showToast('🔔 복용 알림이 활성화되었습니다!', 'success');
-    }
-  } else if (key === 'medicheck_noti' && !value) {
-    syncRemindersToSW();
-    showToast('🔕 복용 알림이 비활성화되었습니다.', 'info');
-  } else {
-    showToast('✅ 설정이 저장되었습니다.', 'success');
-  }
-}
-
-function exportData() {
-  const data = {
-    supplements: state.supplements,
-    exportDate: new Date().toISOString(),
-    version: '1.0.0',
-  };
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `medicheck_backup_${new Date().toISOString().slice(0, 10)}.json`;
-  a.click();
-  URL.revokeObjectURL(url);
-  showToast('📤 데이터를 내보냈습니다.', 'success');
-}
+// 참고: clearAllData / toggleSetting / exportData 는 window.app 객체에 단일 정의되어 있다.
+// (과거 동일 이름의 standalone 중복 정의가 window.app 버전에 의해 가려져 dead code였으므로 제거함)
 
 function setReminderTime(slot, time) {
   saveReminderTime(slot, time);
@@ -841,6 +790,13 @@ window.app = {
 async function init() {
   loadState();
 
+  // [DEV 전용] 디자인 프리뷰 — 로그인 없이 화면 확인용.
+  // vite dev 서버에서만 활성화되며(import.meta.env.DEV), 프로덕션 빌드에는 코드가 제거된다.
+  const DEV_PREVIEW = import.meta.env.DEV && localStorage.getItem('pillstack_dev_preview') === '1';
+  if (DEV_PREVIEW) {
+    state.user = { id: 'dev-preview', email: 'preview@dev.local', user_metadata: { full_name: '프리뷰' }, app_metadata: {} };
+  }
+
   // 스플래시 제거 + 렌더는 어떤 에러가 나도 반드시 실행
   setTimeout(() => {
     const splash = document.getElementById('splash-screen');
@@ -849,20 +805,21 @@ async function init() {
       setTimeout(() => splash.remove(), 600);
     }
     render();
-    if (state.user) showDisclaimerModal();
+    if (state.user && !DEV_PREVIEW) showDisclaimerModal();
   }, 1200);
 
   // Supabase 세션 확인 (실패해도 앱 진행)
   try {
     const session = await getSession();
-    state.user = session?.user || null;
+    if (!DEV_PREVIEW) state.user = session?.user || null;
   } catch {
-    state.user = null;
+    if (!DEV_PREVIEW) state.user = null;
   }
 
   // 인증 상태 변화 감지
   try {
     onAuthStateChange(async (event, session) => {
+      if (DEV_PREVIEW) return; // 디자인 프리뷰 중에는 세션 이벤트로 상태를 덮지 않음
       state.user = session?.user || null;
       if (event === 'SIGNED_IN' && state.user) {
         showToast(`👋 ${state.user?.user_metadata?.full_name || '사용자'}님 환영합니다!`, 'success');
@@ -886,8 +843,13 @@ async function init() {
     console.warn('Auth listener 등록 실패:', e);
   }
 
-  // Service Worker 등록 (백그라운드)
-  initServiceWorker().catch(console.warn);
+  // 레거시 웹 SW 알림 시스템 폐기 — 이전 버전에서 등록된 ServiceWorker가 남아있으면 해제
+  // (현재 알림은 네이티브 LocalNotifications가 전담)
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations()
+      .then(regs => regs.forEach(r => r.unregister()))
+      .catch(() => {});
+  }
 
   // AdMob 초기화 (백그라운드, 네이티브 앱에서만 동작)
   initAdMob().catch(console.warn);

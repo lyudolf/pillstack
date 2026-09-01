@@ -1,6 +1,11 @@
 // api/ocr/analyze.js — Gemini Vision OCR + DB 매칭 Serverless Function
 import { createClient } from '@supabase/supabase-js';
 
+// PostgREST or() 필터 인젝션 방지: 콤마/괄호/별표/퍼센트 등 필터 문법 문자를 공백으로 치환
+function sanitizeLike(s) {
+  return String(s ?? '').replace(/[,()*%\\"']/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -126,8 +131,10 @@ export default async function handler(req, res) {
     // 각 검색어별 단어 AND 검색 + 붙여쓰기 폴백
     for (const term of searchTerms) {
       if (!term) continue;
-      const words = term.split(/\s+/).filter(Boolean);
-      const noSpace = term.replace(/\s+/g, '');
+      const clean = sanitizeLike(term);
+      if (!clean) continue;
+      const words = clean.split(/\s+/).filter(Boolean);
+      const noSpace = clean.replace(/\s+/g, '');
 
       // 단어 AND 검색
       try {

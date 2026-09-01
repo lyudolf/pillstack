@@ -97,7 +97,7 @@ export async function analyzeInteractions(supplements) {
             ingredientB: 'dur-api',
             ingredientAName: dur.ingredientA || ingData.nameKr,
             ingredientBName: otherIngredient,
-            title: `⚠️ DUR 주의: ${dur.ingredientA || ingData.nameKr}`,
+            title: `DUR 주의: ${dur.ingredientA || ingData.nameKr}`,
             description: dur.prohibition,
             tip: '의약품안전사용서비스(DUR) 정보입니다. 자세한 사항은 약사에게 문의하세요.',
             sourceA: ingredientMap.get(ingId)?.join(', ') || '',
@@ -149,12 +149,10 @@ export async function analyzeInteractions(supplements) {
     geminiDebugInfo = `Fetch Error: ${err.message}`;
   }
   
-  // 디버그: Gemini 실패 시 headline에 에러 정보 표시 (임시)
-  if (geminiDebugInfo && !ingredientAnalysis.summary?.headline) {
-    ingredientAnalysis.summary = { 
-      ...ingredientAnalysis.summary, 
-      headline: `⚠️ AI 분석 실패: ${geminiDebugInfo}` 
-    };
+  // AI 분석 실패 시 원시 에러는 콘솔에만 남기고, 사용자에게는 로컬 룰 기반 요약으로 폴백한다.
+  // (headline을 비워두면 아래 return의 _generateSummary 폴백이 동작)
+  if (geminiDebugInfo) {
+    console.warn('[Gemini] 성분 분석 폴백:', geminiDebugInfo);
   }
 
   // 5. 점수 계산: Gemini healthScore 우선, 없으면 로컬 계산
@@ -246,7 +244,7 @@ export function getTimingRecommendation(supplements) {
       if (idx !== -1) {
         morning.splice(idx, 1);
         evening.push(s);
-        notes.push(`💡 ${s.name}을(를) 저녁으로 이동했습니다 (철분과의 흡수 방해 방지).`);
+        notes.push(`${s.name}을(를) 저녁으로 이동했습니다 (철분과의 흡수 방해 방지).`);
       }
     }
   }
@@ -258,18 +256,18 @@ export function getTimingRecommendation(supplements) {
       bedtime.push(s);
       evening.splice(evening.indexOf(s), 1);
     }
-    notes.push('💡 콜라겐은 취침 전 공복에 복용하면 흡수율이 높아집니다.');
+    notes.push('콜라겐은 취침 전 공복에 복용하면 흡수율이 높아집니다.');
   }
 
   // 유산균 공복 권장 노트
   const hasProbiotics = supplements.some((s) => s.ingredients?.includes('probiotics'));
   if (hasProbiotics) {
-    notes.push('💡 유산균은 아침 공복 또는 식전에 복용하는 것이 좋습니다.');
+    notes.push('유산균은 아침 공복 또는 식전에 복용하는 것이 좋습니다.');
   }
 
   // 마그네슘 저녁 노트
   if (eveningIng.has('magnesium') || morningIng.has('magnesium')) {
-    notes.push('💡 마그네슘은 근육 이완 효과가 있어 저녁 복용이 숙면에 도움됩니다.');
+    notes.push('마그네슘은 근육 이완 효과가 있어 저녁 복용이 숙면에 도움됩니다.');
   }
 
   return {
@@ -278,9 +276,9 @@ export function getTimingRecommendation(supplements) {
     bedtime,
     notes,
     schedule: [
-      { time: '🌅 아침 (식사 후)', supplements: morning, label: '아침' },
-      { time: '🌙 저녁 (식사 후)', supplements: evening, label: '저녁' },
-      ...(bedtime.length > 0 ? [{ time: '😴 취침 전', supplements: bedtime, label: '취침 전' }] : []),
+      { time: '아침 (식사 후)', supplements: morning, label: '아침' },
+      { time: '저녁 (식사 후)', supplements: evening, label: '저녁' },
+      ...(bedtime.length > 0 ? [{ time: '취침 전', supplements: bedtime, label: '취침 전' }] : []),
     ],
   };
 }
@@ -291,6 +289,6 @@ function _generateSummary(score, conflictCount, synergyCount) {
   } else if (score >= 70) {
     return `주의가 필요한 조합 ${conflictCount}건이 있습니다. 복용 시간을 조절해주세요.`;
   } else {
-    return `⚠️ 충돌 ${conflictCount}건 발견! 복용 전 약사와 상담을 권장합니다.`;
+    return `충돌 ${conflictCount}건 발견! 복용 전 약사와 상담을 권장합니다.`;
   }
 }
