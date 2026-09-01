@@ -6,10 +6,9 @@ let admobModule = null;
 let isAdMobReady = false;
 let rewardedLoaded = false;
 
-// AdMob 테스트 광고 ID (배포 시 실제 ID로 교체)
+// AdMob 프로덕션 광고 ID (퍼블리셔 pub-3509783767575021)
 const AD_IDS = {
   rewarded: 'ca-app-pub-3509783767575021/3892209787',
-  interstitial: 'ca-app-pub-3940256099942544/1033173712', // 미사용 (추후 필요 시)
 };
 
 // 최초 무료 분석 횟수 (총 1회, 리셋 없음)
@@ -67,7 +66,14 @@ export async function showRewardedAd() {
 
   if (!rewardedLoaded) {
     await prepareRewardedAd();
-    if (!rewardedLoaded) return false;
+    // 광고가 끝내 로드되지 않으면(no-fill 등) 분석을 막지 않고 통과시킨다.
+    // 신규 앱은 출시 초기 no-fill이 잦은데, 여기서 false를 반환하면
+    // 무료 횟수를 소진한 사용자가 핵심 기능에서 영구 잠긴다.
+    // 수익을 우선해 '광고 없으면 차단'으로 바꾸려면 아래를 return false 로 교체.
+    if (!rewardedLoaded) {
+      console.warn('[AdMob] 광고 로드 실패 — 분석 통과 (fail-open)');
+      return true;
+    }
   }
 
   try {
