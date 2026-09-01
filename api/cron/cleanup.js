@@ -4,6 +4,19 @@ import { createClient } from '@supabase/supabase-js';
 export const config = { schedule: '0 0 * * *' }; // 매일 자정 UTC
 
 export default async function handler(req, res) {
+  // ─── Keep-alive: 인증 여부와 무관하게 DB를 가볍게 touch ───
+  // Supabase 무료 티어는 ~1주 미사용 시 프로젝트가 자동 정지된다.
+  // CRON_SECRET 미설정 등으로 아래 인증이 401을 반환하더라도
+  // 매일 도는 이 cron이 DB 활동 기록을 남겨 자동 정지를 방지한다.
+  // (2026-09-01 실제 정지 장애 발생 — 검색·로그인 전면 불능이었음)
+  try {
+    const ping = createClient(
+      process.env.VITE_SUPABASE_URL,
+      process.env.VITE_SUPABASE_ANON_KEY
+    );
+    await ping.from('supplements_catalog').select('regist_no').limit(1);
+  } catch { /* ping 실패는 cron 본연의 동작에 영향 없음 */ }
+
   // Vercel Cron 인증 (CRON_SECRET 검증)
   if (req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
     return res.status(401).json({ error: 'Unauthorized' });
