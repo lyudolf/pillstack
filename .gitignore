@@ -7,3 +7,6 @@ dist
 
 # Keystore
 pillstack-release.keystore
+
+# 로컬 개발 도구
+.claude/

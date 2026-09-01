@@ -33,14 +33,16 @@ subprojects {
                     targetCompatibility = JavaVersion.VERSION_17
                 }
             }
-        }
-        try {
-            project.tasks.withType(Class.forName('org.jetbrains.kotlin.gradle.tasks.KotlinCompile')).configureEach {
-                compilerOptions {
-                    jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+            // Kotlin 모듈(admob 등)의 jvmTarget을 17로 강제해 Java 17 태스크와 일치시킴.
+            // 이게 없으면 Kotlin이 21(class v65)로 컴파일되어 javac 17이 .class를 읽지 못함.
+            // (루트 buildscript 클래스패스엔 Kotlin 플러그인이 없어 KotlinCompile 타입 참조가 불가하므로
+            //  서브프로젝트의 android.kotlinOptions를 통해 설정)
+            try {
+                project.android.kotlinOptions {
+                    jvmTarget = "17"
                 }
-            }
-        } catch (Exception ignored) {}
+            } catch (Exception ignored) {}
+        }
     }
 }
 
