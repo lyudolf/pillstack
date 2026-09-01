@@ -124,7 +124,7 @@ export function renderSettings() {
               <span style="display:inline-flex;flex-shrink:0;">${ICONS.info}</span>
               <div>
                 <div class="settings-label">버전</div>
-                <div class="settings-desc">PillStack v1.1.4</div>
+                <div class="settings-desc">PillStack v1.3.1</div>
               </div>
             </div>
           </div>

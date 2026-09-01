@@ -2,8 +2,11 @@
 
 import { state, addSupplement, removeSupplement } from '../main.js';
 import { getTodaySchedule } from '../services/reminder.js';
-import { getSupplementIcon } from '../utils/icons.js';
+import { getSupplementIcon, uiIcon } from '../utils/icons.js';
 import { checkAnalysisQuota } from '../services/admob.js';
+
+// 시간대별 슬롯 아이콘 (시그니처 컬러는 CSS .slot-* 에서)
+const SLOT_ICONS = { morning: 'sun', evening: 'moon', bedtime: 'bed' };
 
 export function renderHome() {
   const supplements = state.supplements;
@@ -61,10 +64,10 @@ function _renderEmpty() {
       <p>복용 중인 영양제를 등록하고<br>안전한 복용 스케줄을 추천받아보세요.</p>
       <div class="empty-actions">
         <button class="btn-cta-primary" onclick="window.app.navigate('search')">
-          <span>🔍</span> 영양제 검색해서 등록하기
+          <span>${uiIcon('search', 15)}</span> 영양제 검색해서 등록하기
         </button>
         <button class="btn-cta-secondary" onclick="window.app.navigate('camera')">
-          <span>🧠</span> AI로 라벨 인식하기
+          <span>${uiIcon('scan', 15)}</span> AI로 라벨 인식하기
         </button>
       </div>
     </div>
@@ -92,14 +95,14 @@ function _renderTodaySchedule() {
 
   return `
     <div class="section-title animate-in animate-in-delay-1">
-      <span class="section-icon">⏰</span>
+      <span class="section-icon">${uiIcon('clock', 15)}</span>
       오늘의 복용 스케줄
     </div>
     <div class="schedule-card animate-in animate-in-delay-1" style="margin-bottom:20px;">
       ${schedule.map(slot => `
-        <div class="schedule-slot-header">
+        <div class="schedule-slot-header slot-${slot.slot}">
           <span class="schedule-slot-time">${slot.time}</span>
-          <span class="schedule-slot-meta">${slot.emoji} ${slot.label} · ${slot.desc}</span>
+          <span class="schedule-slot-meta"><span class="slot-icon">${uiIcon(SLOT_ICONS[slot.slot] || 'clock', 13)}</span> ${slot.label} · ${slot.desc}</span>
         </div>
         ${slot.supplements.map(s => {
           const isDone = checkedItems.includes(s.id || s.name);
@@ -124,7 +127,7 @@ function _renderTodaySchedule() {
 function _renderShelf(supplements) {
   return `
     <div class="section-title animate-in animate-in-delay-2">
-      <span class="section-icon">📦</span>
+      <span class="section-icon">${uiIcon('box', 15)}</span>
       내 영양제 선반 (${supplements.length}개)
     </div>
     <div class="supplement-grid">
@@ -138,7 +141,7 @@ function _renderShelf(supplements) {
         <div class="supplement-card animate-in animate-in-delay-${(i % 4) + 1}" data-id="${s.id}"
              onclick="window.app.showShelfDetail('${s.id}')" style="cursor:pointer;">
           <button class="remove-btn" onclick="event.stopPropagation(); window.app.removeSupplement('${s.id}')" title="삭제">✕</button>
-          ${isLow ? '<span class="inventory-badge">⚠️ 곧 소진</span>' : ''}
+          ${isLow ? '<span class="inventory-badge">곧 소진</span>' : ''}
           <div class="icon">${getSupplementIcon(s.icon)}</div>
           <div class="name">${s.name}</div>
           <div class="brand">${s.brand}</div>
@@ -146,7 +149,7 @@ function _renderShelf(supplements) {
             <div class="inventory-bar">
               <div class="inventory-bar-fill ${isLow ? 'low' : ''}" style="width:${pct}%"></div>
             </div>
-            <span class="inventory-label">${remaining}정 / ${total}정 <span class="inventory-edit-hint">⚙️</span></span>
+            <span class="inventory-label">${remaining}정 / ${total}정</span>
           </div>
         </div>
       `;
@@ -164,7 +167,7 @@ function _renderAnalyzeFAB(count) {
   const quotaText = quota.needAd ? '광고 시청 필요' : `무료 ${quota.remaining}회 남음`;
   return `
     <button class="analyze-fab" onclick="window.app.startAnalysis()">
-      🔬 성분 분석하기
+      ${uiIcon('flask', 16)} 성분 분석하기
       <span class="fab-badge">${quotaText}</span>
     </button>
   `;
@@ -182,7 +185,7 @@ function _renderRepurchaseBanner(supplements) {
 
   return `
     <div class="repurchase-banner animate-in">
-      <div class="repurchase-banner-icon">🛒</div>
+      <div class="repurchase-banner-icon">${uiIcon('cart', 20)}</div>
       <div class="repurchase-banner-content">
         <div class="repurchase-banner-title">재구매가 필요해요!</div>
         <div class="repurchase-banner-list">

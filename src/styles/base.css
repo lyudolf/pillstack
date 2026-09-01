@@ -4,36 +4,60 @@
    ═══════════════════════════════════════════ */
 
 :root {
-  --bg-primary: #08090a;
-  --bg-secondary: #0f1011;
-  --bg-card: rgba(255, 255, 255, 0.02);
-  --bg-glass: rgba(255, 255, 255, 0.04);
-  --bg-glass-hover: rgba(255, 255, 255, 0.06);
-  --bg-surface: #191a1b;
-  --border-glass: rgba(255, 255, 255, 0.08);
-  --border-glass-hover: rgba(255, 255, 255, 0.12);
+  /* ── 야간 조제실(Night Dispensary) 팔레트 ──
+     ink: 청록 기운의 잉크 블랙 (순수 블랙 X)
+     brand: 캡슐 민트 — 액션/포커스 전용
+     시맨틱 3색: 안전(그린)/주의(앰버)/위험(레드) — 분석 위험도 전달용, 다른 용도 금지
+     슬롯 3색: 아침(해돋이)/저녁(황혼)/취침(자정) — "언제 먹는가"를 색으로 인코딩 */
+  --bg-primary: #0d1114;
+  --bg-secondary: #11171a;
+  --bg-card: rgba(255, 255, 255, 0.03);
+  --bg-glass: rgba(255, 255, 255, 0.05);
+  --bg-glass-hover: rgba(255, 255, 255, 0.08);
+  --bg-surface: #1a2125;
+  --border-glass: rgba(255, 255, 255, 0.09);
+  --border-glass-hover: rgba(255, 255, 255, 0.15);
 
-  --text-primary: #f7f8f8;
-  --text-secondary: #d0d6e0;
-  --text-muted: #8a8f98;
-  --text-faint: #62666d;
+  --text-primary: #f2f6f5;
+  --text-secondary: #c6d1cd;
+  --text-muted: #87938f;
+  --text-faint: #5c6764;
 
-  --accent-blue: #6366f1;
-  --accent-blue-glow: rgba(99, 102, 241, 0.25);
-  --accent-violet: #818cf8;
-  --accent-violet-hover: #a5b4fc;
-  --accent-green: #6366f1;
-  --accent-green-glow: rgba(99, 102, 241, 0.15);
-  --accent-yellow: #818cf8;
-  --accent-yellow-glow: rgba(129, 140, 248, 0.15);
-  --accent-red: #ef4444;
-  --accent-red-glow: rgba(239, 68, 68, 0.15);
+  /* 브랜드 (토큰명은 레거시 호환을 위해 유지, 값은 민트) */
+  --accent: #3ed3ae;
+  /* 밝은 민트/레드 배경 위 텍스트 — 흰색은 대비 1.9:1로 불가, 잉크가 10:1 */
+  --on-accent: #072019;
+  --on-danger: #33100d;
+  --accent-blue: #3ed3ae;
+  --accent-blue-glow: rgba(62, 211, 174, 0.22);
+  --accent-violet: #7fdcc5;
+  --accent-violet-hover: #a8e8d8;
 
-  --gradient-main: #6366f1;
-  --gradient-card: rgba(99, 102, 241, 0.08);
-  --gradient-synergy: rgba(129, 140, 248, 0.12);
-  --gradient-caution: rgba(129, 140, 248, 0.08);
-  --gradient-danger: rgba(239, 68, 68, 0.1);
+  /* 시맨틱 — 위험도 전달 (진짜 색 복원) */
+  --safe: #46d98a;
+  --accent-green: #46d98a;
+  --accent-green-glow: rgba(70, 217, 138, 0.15);
+  --warning: #e9b84b;
+  --accent-yellow: #e9b84b;
+  --accent-yellow-glow: rgba(233, 184, 75, 0.15);
+  --danger: #f0716b;
+  --accent-red: #f0716b;
+  --accent-red-glow: rgba(240, 113, 107, 0.15);
+  --info-blue: #6fb5e8;
+
+  /* 시그니처 — 시간대 컬러 */
+  --slot-morning: #f2a65a;
+  --slot-morning-soft: rgba(242, 166, 90, 0.14);
+  --slot-evening: #a78bfa;
+  --slot-evening-soft: rgba(167, 139, 250, 0.14);
+  --slot-bedtime: #7fa7e8;
+  --slot-bedtime-soft: rgba(127, 167, 232, 0.14);
+
+  --gradient-main: linear-gradient(135deg, #3ed3ae 0%, #2ab896 100%);
+  --gradient-card: rgba(62, 211, 174, 0.07);
+  --gradient-synergy: rgba(70, 217, 138, 0.1);
+  --gradient-caution: rgba(233, 184, 75, 0.08);
+  --gradient-danger: rgba(240, 113, 107, 0.1);
 
   --radius-sm: 6px;
   --radius-md: 8px;
@@ -44,7 +68,7 @@
   --shadow-sm: rgba(0, 0, 0, 0.03) 0px 1.2px 0px 0px;
   --shadow-md: rgba(0, 0, 0, 0.4) 0px 2px 4px;
   --shadow-lg: rgba(0, 0, 0, 0.2) 0px 0px 0px 1px;
-  --shadow-glow-blue: 0 0 20px rgba(99, 102, 241, 0.3);
+  --shadow-glow-blue: 0 0 20px rgba(62, 211, 174, 0.28);
 
   --transition-fast: 150ms ease;
   --transition-normal: 250ms ease;
@@ -103,7 +127,7 @@ body {
 
 @keyframes fabPulse {
   0%, 100% { box-shadow: var(--shadow-glow-blue), var(--shadow-lg); }
-  50% { box-shadow: 0 0 35px rgba(99, 102, 241, 0.5), var(--shadow-lg); }
+  50% { box-shadow: 0 0 35px rgba(62, 211, 174, 0.45), var(--shadow-lg); }
 }
 
 @keyframes animate-in {

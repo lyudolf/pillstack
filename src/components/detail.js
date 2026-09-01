@@ -1,4 +1,5 @@
 // ═══════════════════════════════════════════
+import { uiIcon } from '../utils/icons.js';
 // Product Detail - 영양제 상세 정보 모달
 // 공공데이터 API에서 기능성/섭취방법/주의사항 로드
 // ═══════════════════════════════════════════
@@ -90,7 +91,7 @@ function _renderDetailModal() {
             <div class="detail-tags">
               <span class="tag tag-${p.category}">${catInfo.icon} ${catInfo.label}</span>
               ${p.source === 'api' ? '<span class="tag">🌐 공공데이터</span>' : ''}
-              ${p.registNo ? `<span class="tag">📋 ${p.registNo}</span>` : ''}
+              ${p.registNo ? `<span class="tag">${p.registNo}</span>` : ''}
             </div>
           </div>
           <button class="modal-close" onclick="window.app.closeDetail()">✕</button>
@@ -108,7 +109,7 @@ function _renderDetailModal() {
         <div class="detail-actions">
           ${isShelfView ? `
             <a class="btn-coupang" href="https://www.coupang.com/np/search?component=&q=${encodeURIComponent(p.name)}" target="_blank" rel="noopener">
-              🛒 쿠팡에서 검색
+              ${uiIcon("cart", 14)} 쿠팡에서 검색
             </a>
             <p class="coupang-disclaimer">이 포스팅은 쿠팡 파트너스 활동의 일환으로, 이에 따른 일정액의 수수료를 제공받을 수 있습니다.</p>
           ` : `
@@ -132,19 +133,19 @@ function _renderDetailContent() {
     const sections = [];
 
     if (d.mainFunction) {
-      sections.push(_section('💊 주요 기능성', _formatMultiline(d.mainFunction)));
+      sections.push(_section('주요 기능성', _formatMultiline(d.mainFunction)));
     }
     if (d.intake) {
-      sections.push(_section('📋 섭취 방법', _formatMultiline(d.intake)));
+      sections.push(_section('섭취 방법', _formatMultiline(d.intake)));
     }
     if (d.caution) {
-      sections.push(_section('⚠️ 섭취 주의사항', _formatMultiline(d.caution), 'caution'));
+      sections.push(_section('섭취 주의사항', _formatMultiline(d.caution), 'caution'));
     }
     if (d.appearance) {
       sections.push(_section('🔬 성상', d.appearance));
     }
     if (d.shelfLife) {
-      sections.push(_section('📅 유통기한', d.shelfLife));
+      sections.push(_section('유통기한', d.shelfLife));
     }
     if (d.preservation) {
       sections.push(_section('🧊 보관법', d.preservation));
@@ -165,7 +166,7 @@ function _renderDetailContent() {
   if (!isLoadingDetail) {
     const fallback = [];
     if (p.ingredients?.length) {
-      fallback.push(_section('💊 포함 성분',
+      fallback.push(_section('포함 성분',
         `<div class="detail-chips">${p.ingredients.map(i => `<span class="detail-chip">${i}</span>`).join('')}</div>`
       ));
     }

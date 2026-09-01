@@ -1,4 +1,5 @@
 // ═══════════════════════════════════════════
+import { uiIcon } from '../utils/icons.js';
 // Schedule Component - 복용 관리 페이지
 // 저장된 분석 결과 기반 시간대별 타임피커
 // ═══════════════════════════════════════════
@@ -34,7 +35,7 @@ export function renderSchedule() {
     return `
       <div class="page active" id="page-schedule">
         <div class="page-header">
-          <h1>⏰ 복용 관리</h1>
+          <h1>${uiIcon("clock", 20)} 복용 관리</h1>
           <p class="subtitle">복용 시간을 설정하고 알림을 관리하세요</p>
         </div>
         <div class="page-content">
@@ -57,7 +58,7 @@ export function renderSchedule() {
   return `
     <div class="page active" id="page-schedule">
       <div class="page-header">
-        <h1>⏰ 복용 관리</h1>
+        <h1>${uiIcon("clock", 20)} 복용 관리</h1>
         <p class="subtitle">복용 시간을 설정하고 알림을 관리하세요</p>
       </div>
       <div class="page-content">
@@ -71,7 +72,7 @@ export function renderSchedule() {
         ${timing.schedule.map((slot, i) => {
           const slotKey = slotMap[slot.label] || 'morning';
           const savedTime = reminders[slotKey] || '08:00';
-          const slotEmoji = slotKey === 'morning' ? '🌅' : slotKey === 'evening' ? '🌙' : '😴';
+          const slotEmoji = uiIcon(slotKey === 'morning' ? 'sun' : slotKey === 'evening' ? 'moon' : 'bed', 14);
 
           return `
             <div class="schedule-manage-card animate-in animate-in-delay-${i + 1}">
@@ -115,7 +116,7 @@ export function renderSchedule() {
         ` : ''}
 
         <div class="reminder-save-hint animate-in" style="margin-top:16px;">
-          <span>⏰</span> 설정한 시간에 맞춰 복용 알림이 전송됩니다
+          <span>${uiIcon("clock", 14)}</span> 설정한 시간에 맞춰 복용 알림이 전송됩니다
         </div>
 
         <div style="height:20px;"></div>

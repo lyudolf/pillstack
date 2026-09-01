@@ -1,4 +1,5 @@
 // ═══════════════════════════════════════════
+import { uiIcon } from '../utils/icons.js';
 // Disclaimer Component - 법적 고지 모달
 // 최초 실행 시 동의 필수
 // ═══════════════════════════════════════════
@@ -43,7 +44,7 @@ export function showDisclaimerModal() {
           </div>
 
           <div class="disclaimer-section">
-            <h3>⚠️ 개인차 안내</h3>
+            <h3>${uiIcon("alert", 15)} 개인차 안내</h3>
             <p>개인의 건강 상태, 복용 중인 약물, 알레르기 등에 따라 <strong>결과가 다를 수 있습니다</strong>. 특히 임산부, 수유부, 어린이는 전문가 상담 후 복용하세요.</p>
           </div>
         </div>

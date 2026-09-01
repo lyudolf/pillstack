@@ -1,4 +1,5 @@
 // ═══════════════════════════════════════════
+import { uiIcon } from '../utils/icons.js';
 // Notification Center — 알림 센터 UI
 // ═══════════════════════════════════════════
 
@@ -38,7 +39,7 @@ export function renderNotifications() {
 
   const headerHTML = `
     <div class="notif-center-header">
-      <h2 class="notif-center-title">🔔 알림</h2>
+      <h2 class="notif-center-title">${uiIcon("bell", 18)} 알림</h2>
       <div class="notif-center-actions">
         ${unreadCount > 0 ? `
           <button class="notif-action-btn" onclick="window.app.markAllNotificationsRead()">

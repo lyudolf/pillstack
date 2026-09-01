@@ -45,7 +45,11 @@
   min-height: 100vh;
   padding: 40px 24px;
   text-align: center;
-  background: linear-gradient(135deg, #afcffa 0%, #4446c9 30%, #1b13b4 55%, #4e70a7 100%);
+  /* 야간 조제실 오로라 — 브랜드 민트 + 자정 블루가 잉크 위에 번지는 배경 */
+  background:
+    radial-gradient(120% 80% at 18% 0%, rgba(62, 211, 174, 0.30) 0%, transparent 55%),
+    radial-gradient(110% 65% at 92% 100%, rgba(127, 167, 232, 0.16) 0%, transparent 60%),
+    var(--bg-primary);
 }
 
 .login-hero { margin-bottom: 100px; }

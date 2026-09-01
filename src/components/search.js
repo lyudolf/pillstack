@@ -4,7 +4,7 @@
 // ═══════════════════════════════════════════
 
 import { CATEGORIES } from '../data/fallbackDB.js';
-import { getSupplementIcon } from '../utils/icons.js';
+import { getSupplementIcon, categoryIcon, uiIcon } from '../utils/icons.js';
 import { apiUrl } from '../utils/api.js';
 import { logEvent } from '../services/analytics.js';
 
@@ -35,7 +35,7 @@ export function renderSearch() {
     <div class="page active" id="page-search">
       <div class="page-header">
         <h1 style="display:flex;align-items:center;gap:10px;">
-          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round">
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent-blue)" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="11" cy="11" r="8"/><line x1="22" y1="22" x2="16.65" y2="16.65"/>
           </svg>
           영양제 검색
@@ -44,7 +44,7 @@ export function renderSearch() {
       </div>
       <div class="page-content">
         <div class="search-container">
-          <span class="search-icon" style="display:flex;align-items:center;justify-content:center;color:#6366f1;">
+          <span class="search-icon" style="display:flex;align-items:center;justify-content:center;color:var(--accent-blue);">
             <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="11" cy="11" r="8"/><line x1="22" y1="22" x2="16.65" y2="16.65"/>
             </svg>
@@ -66,7 +66,7 @@ export function renderSearch() {
             <button class="category-pill ${key === currentCategory ? 'active' : ''}"
               data-category="${key}"
               onclick="window.app.filterCategory('${key}')">
-              ${cat.icon} ${cat.label}
+              ${categoryIcon(key === "all" ? "default" : key, 13)} ${cat.label}
             </button>
           `).join('')}
         </div>
@@ -212,20 +212,27 @@ async function _loadItems(query, page, replace = false) {
   } catch (err) {
     console.error('[Search Error]', err);
     if (replace) {
-      const isNative = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
-      const debugInfo = [
-        `Error: ${err.message}`,
-        `Platform: ${isNative ? 'Capacitor Native' : 'Web'}`,
-        `Origin: ${window.location.origin}`,
-        `Protocol: ${window.location.protocol}`,
-        `API_BASE: ${apiUrl('')}`,
-      ].join('\n');
+      // 디버그 정보는 dev 서버에서만 노출 (프로덕션 빌드에서는 코드 제거됨)
+      let debugBlock = '';
+      if (import.meta.env.DEV) {
+        const isNative = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+        const debugInfo = [
+          `Error: ${err.message}`,
+          `Platform: ${isNative ? 'Capacitor Native' : 'Web'}`,
+          `Origin: ${window.location.origin}`,
+          `API_BASE: ${apiUrl('')}`,
+        ].join('\n');
+        debugBlock = `<pre style="font-size:0.6rem;color:var(--text-muted);margin-top:12px;text-align:left;white-space:pre-wrap;word-break:break-all;background:rgba(255,255,255,0.03);padding:12px;border-radius:8px;max-height:200px;overflow:auto;">${debugInfo}</pre>`;
+      }
 
       container.innerHTML = `
         <div class="no-results">
-          <div class="no-results-icon">⚠️</div>
-          <p>데이터를 불러오지 못했습니다.</p>
-          <pre style="font-size:0.6rem;color:var(--text-muted);margin-top:12px;text-align:left;white-space:pre-wrap;word-break:break-all;background:rgba(255,255,255,0.03);padding:12px;border-radius:8px;max-height:200px;overflow:auto;">${debugInfo}</pre>
+          <div class="no-results-icon" style="color:var(--warning);">${uiIcon('alert', 32)}</div>
+          <p>검색 결과를 불러오지 못했습니다.<br>네트워크 연결을 확인해주세요.</p>
+          <button class="btn-cta-secondary" style="max-width:200px;margin:16px auto 0;" onclick="window.app.handleSearch(document.getElementById('search-input')?.value || '')">
+            다시 시도
+          </button>
+          ${debugBlock}
         </div>
       `;
     }

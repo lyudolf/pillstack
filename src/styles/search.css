@@ -25,7 +25,7 @@
 .search-input::placeholder { color: var(--text-muted); }
 .search-input:focus {
   border-color: var(--accent-blue);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+  box-shadow: 0 0 0 3px rgba(62, 211, 174, 0.15);
 }
 
 .search-icon {
@@ -90,7 +90,7 @@
 }
 
 .category-pill:hover { background: var(--bg-glass-hover); }
-.category-pill.active { background: var(--accent-blue); color: #fff; border-color: var(--accent-blue); }
+.category-pill.active { background: var(--accent-blue); color: var(--on-accent); border-color: var(--accent-blue); }
 
 /* ─── Search Results ─── */
 .search-results { display: flex; flex-direction: column; gap: 8px; }
@@ -108,7 +108,7 @@
 }
 
 .search-result-item:hover { background: var(--bg-glass-hover); border-color: var(--accent-blue); }
-.search-result-item.added { border-color: #818cf8; opacity: 0.85; }
+.search-result-item.added { border-color: #7fdcc5; opacity: 0.85; }
 .search-result-item.added:hover { opacity: 1; }
 
 .search-result-item .result-icon { font-size: 1.8rem; flex-shrink: 0; }
@@ -130,12 +130,13 @@
 .result-arrow { font-size: 1.4rem; color: var(--text-muted); flex-shrink: 0; margin-left: 4px; }
 
 /* ─── Category Tags ─── */
-.tag-vitamin  { background: rgba(129, 140, 248, 0.15); color: #818cf8; border-color: rgba(129, 140, 248, 0.3); }
-.tag-probiotic { background: rgba(99, 102, 241, 0.15); color: var(--accent-blue); border-color: rgba(99, 102, 241, 0.3); }
-.tag-herbal   { background: rgba(99, 102, 241, 0.1); color: #a5b4fc; border-color: rgba(129, 140, 248, 0.2); }
-.tag-mineral  { background: rgba(129, 140, 248, 0.15); color: #818cf8; border-color: rgba(129, 140, 248, 0.3); }
-.tag-omega    { background: rgba(99, 102, 241, 0.15); color: var(--accent-blue); border-color: rgba(99, 102, 241, 0.3); }
-.tag-function { background: rgba(129, 140, 248, 0.1); color: #a5b4fc; border-color: rgba(129, 140, 248, 0.2); }
+/* 카테고리 고유색 — utils/icons.js CATEGORY_COLORS와 일치 */
+.tag-vitamin  { background: rgba(242, 166, 90, 0.13); color: #f2a65a; border-color: rgba(242, 166, 90, 0.3); }
+.tag-probiotic { background: rgba(70, 217, 138, 0.13); color: #46d98a; border-color: rgba(70, 217, 138, 0.3); }
+.tag-herbal   { background: rgba(111, 206, 127, 0.12); color: #6fce7f; border-color: rgba(111, 206, 127, 0.28); }
+.tag-mineral  { background: rgba(127, 167, 232, 0.13); color: #7fa7e8; border-color: rgba(127, 167, 232, 0.3); }
+.tag-omega    { background: rgba(95, 196, 224, 0.13); color: #5fc4e0; border-color: rgba(95, 196, 224, 0.3); }
+.tag-function { background: rgba(224, 139, 199, 0.12); color: #e08bc7; border-color: rgba(224, 139, 199, 0.28); }
 .tag-etc      { background: rgba(107, 114, 128, 0.15); color: var(--text-muted); border-color: rgba(107, 114, 128, 0.3); }
 
 /* ─── Pagination / Infinite Scroll ─── */
@@ -231,7 +232,7 @@
   border: none;
   border-radius: var(--radius-lg);
   background: var(--accent-blue);
-  color: white;
+  color: var(--on-accent);
   font-family: var(--font-family);
   font-size: 0.95rem;
   font-weight: 600;

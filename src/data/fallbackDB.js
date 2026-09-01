@@ -404,27 +404,27 @@ export const INTERACTIONS = [
     ingredientA: 'calcium',
     ingredientB: 'iron',
     severity: 'warning',
-    title: '⚠️ 칼슘 + 철분 = 흡수 방해',
+    title: '칼슘 + 철분 = 흡수 방해',
     description: '칼슘이 철분의 흡수를 최대 60%까지 방해할 수 있습니다.',
-    tip: '💡 칼슘은 저녁, 철분은 아침(공복)에 분리해서 복용하세요 (최소 2시간 간격).',
+    tip: '칼슘은 저녁, 철분은 아침(공복)에 분리해서 복용하세요 (최소 2시간 간격).',
   },
   {
     type: 'conflict',
     ingredientA: 'zinc',
     ingredientB: 'iron',
     severity: 'warning',
-    title: '⚠️ 아연 + 철분 = 경쟁 흡수',
+    title: '아연 + 철분 = 경쟁 흡수',
     description: '아연과 철분은 같은 흡수 경로를 사용하여 서로의 흡수를 방해합니다.',
-    tip: '💡 아침에 철분, 점심/저녁에 아연으로 분리하세요 (최소 2시간 간격).',
+    tip: '아침에 철분, 점심/저녁에 아연으로 분리하세요 (최소 2시간 간격).',
   },
   {
     type: 'conflict',
     ingredientA: 'calcium',
     ingredientB: 'zinc',
     severity: 'warning',
-    title: '⚠️ 칼슘 + 아연 = 흡수 감소',
+    title: '칼슘 + 아연 = 흡수 감소',
     description: '고용량 칼슘(500mg 이상)이 아연의 흡수를 방해할 수 있습니다.',
-    tip: '💡 칼슘은 저녁, 아연은 아침에 복용하세요.',
+    tip: '칼슘은 저녁, 아연은 아침에 복용하세요.',
   },
   {
     type: 'conflict',
@@ -433,7 +433,7 @@ export const INTERACTIONS = [
     severity: 'caution',
     title: '칼슘 + 마그네슘 = 고용량 주의',
     description: '두 미네랄을 동시에 고용량 복용하면 서로의 흡수를 약간 방해할 수 있습니다.',
-    tip: '💡 칼슘과 마그네슘을 2:1 비율로, 또는 식사 간격으로 분리 복용하세요.',
+    tip: '칼슘과 마그네슘을 2:1 비율로, 또는 식사 간격으로 분리 복용하세요.',
   },
   {
     type: 'conflict',
@@ -442,7 +442,7 @@ export const INTERACTIONS = [
     severity: 'caution',
     title: '비타민C + B12 = 고용량 시 주의',
     description: '고용량 비타민C(1000mg 이상)가 비타민B12의 흡수를 방해할 수 있다는 연구가 있습니다.',
-    tip: '💡 비타민C와 B12는 2시간 간격을 두고 복용하세요.',
+    tip: '비타민C와 B12는 2시간 간격을 두고 복용하세요.',
   },
   {
     type: 'conflict',
@@ -451,7 +451,7 @@ export const INTERACTIONS = [
     severity: 'caution',
     title: '비타민E + 철분 = 흡수 간섭',
     description: '비타민E가 철분의 흡수를 방해할 수 있습니다.',
-    tip: '💡 비타민E는 식사 후, 철분은 공복에 별도로 복용하세요.',
+    tip: '비타민E는 식사 후, 철분은 공복에 별도로 복용하세요.',
   },
 
   // ─── 주의 (특별 조건 충돌) ───
@@ -462,7 +462,7 @@ export const INTERACTIONS = [
     severity: 'caution',
     title: '오메가3 + 칼슘 = 흡수 감소 가능',
     description: '오메가3와 칼슘을 동시 복용 시 지방산이 칼슘과 결합하여 흡수가 감소할 수 있습니다.',
-    tip: '💡 오메가3는 아침 식사, 칼슘은 저녁 식사와 함께 복용하세요.',
+    tip: '오메가3는 아침 식사, 칼슘은 저녁 식사와 함께 복용하세요.',
   },
   {
     type: 'conflict',
@@ -471,6 +471,6 @@ export const INTERACTIONS = [
     severity: 'caution',
     title: '홍삼 + 철분 = 탄닌 방해',
     description: '홍삼의 탄닌 성분이 철분 흡수를 방해할 수 있습니다.',
-    tip: '💡 홍삼과 철분제는 2시간 이상 간격을 두세요.',
+    tip: '홍삼과 철분제는 2시간 이상 간격을 두세요.',
   },
 ];

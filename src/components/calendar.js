@@ -5,6 +5,7 @@
 
 import { state } from '../main.js';
 import { getTodaySchedule } from '../services/reminder.js';
+import { uiIcon } from '../utils/icons.js';
 
 const MONTH_NAMES = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
 const DAY_NAMES = ['일','월','화','수','목','금','토'];
@@ -31,7 +32,7 @@ export function renderCalendar() {
   return `
     <div class="page active" id="page-calendar">
       <div class="page-header">
-        <h1>📅 복용 달력</h1>
+        <h1>${uiIcon('calendar', 20)} 복용 달력</h1>
         <p class="subtitle">매일의 복용 기록을 확인하세요</p>
       </div>
       <div class="page-content">

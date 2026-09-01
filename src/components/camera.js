@@ -7,6 +7,7 @@ import { CATEGORIES } from '../data/fallbackDB.js';
 import { apiUrl } from '../utils/api.js';
 import { showProductDetail } from './detail.js';
 import { logEvent } from '../services/analytics.js';
+import { uiIcon } from '../utils/icons.js';
 
 let capturedImageData = null;
 
@@ -14,7 +15,7 @@ export function renderCamera() {
   return `
     <div class="page active" id="page-camera">
       <div class="page-header">
-        <h1>🔍 라벨 인식</h1>
+        <h1>${uiIcon('scan', 20)} 라벨 인식</h1>
         <p class="subtitle">영양제 라벨 사진을 올리면 AI가 자동으로 제품을 찾아줍니다</p>
       </div>
       <div class="page-content">
@@ -25,15 +26,15 @@ export function renderCamera() {
           <input type="file" accept="image/*" capture="environment" id="camera-input" style="display:none;"
                  onchange="window.app.handleImageUpload(event)" />
           <div class="upload-placeholder" id="upload-placeholder">
-            <div class="upload-icon">📸</div>
+            <div class="upload-icon" style="color:var(--accent);">${uiIcon("camera", 40)}</div>
             <p class="upload-title">영양제 라벨 사진</p>
             <p class="upload-desc">성분표 또는 제품명이 보이는 사진을 올려주세요</p>
             <div style="display:flex;gap:10px;justify-content:center;margin-top:8px;">
               <button class="upload-btn" onclick="event.stopPropagation(); document.getElementById('camera-input').click()">
-                📷 카메라 촬영
+                ${uiIcon("camera", 15)} 카메라 촬영
               </button>
               <button class="upload-btn upload-btn-secondary" onclick="event.stopPropagation(); document.getElementById('file-input').click()">
-                🖼️ 갤러리 선택
+                ${uiIcon("image", 15)} 갤러리 선택
               </button>
             </div>
           </div>
@@ -43,7 +44,7 @@ export function renderCamera() {
         <!-- 재선택 / 인식 버튼 -->
         <div class="ocr-actions" id="ocr-actions" style="display:none;">
           <button class="btn-secondary" onclick="window.app.retakePhoto()">🔄 다시 선택</button>
-          <button class="btn-primary" id="ocr-start-btn" onclick="window.app.startOCR()">🔍 AI 라벨 인식</button>
+          <button class="btn-primary" id="ocr-start-btn" onclick="window.app.startOCR()">${uiIcon("scan", 15)} AI 라벨 인식</button>
         </div>
 
         <!-- OCR 결과 영역 -->
@@ -55,7 +56,7 @@ export function renderCamera() {
 
         <!-- 안내 카드 -->
         <div class="card animate-in ocr-tip-card" id="ocr-tip-card">
-          <h3>💡 인식률 높이는 팁</h3>
+          <h3>${uiIcon("bulb", 15)} 인식률 높이는 팁</h3>
           <ul class="ocr-tips">
             <li>제품명이 선명하게 보이는 사진을 사용하세요</li>
             <li>영양 성분표가 포함된 뒷면 사진도 효과적입니다</li>
@@ -104,7 +105,7 @@ export function handleImageUpload(e) {
     const area = document.getElementById('upload-area');
     if (area) area.onclick = null;
 
-    window.app.showToast('🖼️ 이미지 로드 완료!', 'success');
+    window.app.showToast('이미지 로드 완료!', 'success');
   };
   reader.readAsDataURL(file);
 }
@@ -224,7 +225,7 @@ function _renderMatches(container, matches, searchTerms) {
     container.innerHTML = `
       <div class="ocr-no-match">
         <p>일치하는 제품을 찾지 못했습니다.</p>
-        <button class="btn-secondary" onclick="window.app.navigate('search')">🔍 직접 검색하기</button>
+        <button class="btn-secondary" onclick="window.app.navigate('search')">${uiIcon("search", 14)} 직접 검색하기</button>
       </div>
     `;
     return;
@@ -234,7 +235,7 @@ function _renderMatches(container, matches, searchTerms) {
   window._ocrMatches = matches;
 
   container.innerHTML = `
-    <h3 class="ocr-match-title">🎯 매칭된 제품 (${matches.length}건)</h3>
+    <h3 class="ocr-match-title">${uiIcon("target", 15)} 매칭된 제품 (${matches.length}건)</h3>
     <div class="ocr-match-list">
       ${matches.map((s, idx) => {
         const isAdded = addedIds.has(s.id);
@@ -254,7 +255,7 @@ function _renderMatches(container, matches, searchTerms) {
     </div>
     <button class="btn-secondary" style="width:100%;margin-top:12px;"
             onclick="window.app.navigate('search')">
-      🔍 직접 검색하기
+      ${uiIcon("search", 14)} 직접 검색하기
     </button>
   `;
 }
