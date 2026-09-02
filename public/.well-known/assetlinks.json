@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "kr.pillstack",
+      "sha256_cert_fingerprints": [
+        "1D:85:FB:39:F1:C9:BF:99:1B:54:B3:E9:10:C9:42:E9:4A:56:49:FA:40:EB:89:51:5F:2F:24:78:BE:C1:59:42"
+      ]
+    }
+  }
+]

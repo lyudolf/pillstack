@@ -18,11 +18,23 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- OAuth 콜백용 커스텀 스킴 (kr.pillstack://) -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="kr.pillstack" />
+            </intent-filter>
+
+            <!-- 초대 링크 (https://pillstack.kr/i/{code})
+                 autoVerify: /.well-known/assetlinks.json 의 서명 지문과 대조해 자동 검증된다.
+                 검증되면 브라우저를 거치지 않고 앱이 바로 열린다. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="pillstack.kr" android:pathPrefix="/i/" />
+                <data android:scheme="https" android:host="www.pillstack.kr" android:pathPrefix="/i/" />
             </intent-filter>
         </activity>
 

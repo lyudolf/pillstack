@@ -25,6 +25,7 @@ import { initLocalNotifications, scheduleReminders } from './services/localNotif
 import { markAsRead, markAllAsRead, clearAll, getUnreadCount } from './services/notificationStore.js';
 import { apiUrl } from './utils/api.js';
 import { initAnalytics, logEvent, logScreenView, setUserId } from './services/analytics.js';
+import { captureInviteFromUrl, captureInviteFromReferrer, getPendingInvite } from './services/invite.js';
 
 // ─── State Management ───
 const STORAGE_KEY = 'medicheck_supplements';
@@ -900,6 +901,45 @@ async function init() {
       });
     }).catch(() => {});
   } catch {}
+
+  // ─── 초대 코드 수집 ───
+  // 코드가 들어오는 세 경로를 모두 여기서 받아 '보류 중인 초대'로 저장한다.
+  // 실제 참여(join)는 로그인·닉네임 입력이 끝난 뒤 초대 화면에서 처리한다.
+  _initInviteCapture().catch(console.warn);
+}
+
+async function _initInviteCapture() {
+  // ① 앱이 이미 떠 있는 상태에서 링크를 탭한 경우
+  try {
+    const { App } = await import('@capacitor/app');
+
+    App.addListener('appUrlOpen', ({ url }) => {
+      // OAuth 콜백은 lib/supabase.js 리스너가 처리한다. 여기선 초대만.
+      if (url.includes('access_token')) return;
+      if (captureInviteFromUrl(url)) _promptPendingInvite();
+    });
+
+    // ② 링크를 눌러 앱이 새로 실행된 경우(콜드 스타트) — 위 리스너는 이미 지나갔을 수 있다
+    const launch = await App.getLaunchUrl();
+    if (launch?.url) captureInviteFromUrl(launch.url);
+  } catch {
+    // 웹 환경: 현재 주소에서 코드를 찾아본다 (/i/482917 로 직접 접근)
+    captureInviteFromUrl(window.location.href);
+  }
+
+  // ③ 스토어를 거쳐 설치된 경우 — 첫 실행에서 1회만 조회
+  await captureInviteFromReferrer();
+
+  _promptPendingInvite();
+}
+
+// 보류 중인 초대가 있으면 사용자에게 알린다.
+// (참여 UI는 온보딩/초대 화면 구현 시 연결 — 지금은 안내만)
+function _promptPendingInvite() {
+  const code = getPendingInvite();
+  if (!code) return;
+  console.log('[Invite] 보류 중인 초대:', code);
+  logEvent('invite_received', { code_present: true });
 }
 
 document.addEventListener('DOMContentLoaded', init);

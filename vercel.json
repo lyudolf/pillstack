@@ -21,6 +21,8 @@
     { "source": "/api/supplements/detail",  "destination": "/api/supplements/detail.js" },
     { "source": "/api/account/delete",      "destination": "/api/account/delete.js" },
     { "source": "/api/analyze/ingredients",  "destination": "/api/analyze/ingredients.js" },
-    { "source": "/api/cron/cleanup",        "destination": "/api/cron/cleanup.js" }
+    { "source": "/api/invite/peek",         "destination": "/api/invite/peek.js" },
+    { "source": "/api/cron/cleanup",        "destination": "/api/cron/cleanup.js" },
+    { "source": "/i/:code",                 "destination": "/invite.html" }
   ]
 }

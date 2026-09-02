@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>PillStack 초대</title>
+  <meta name="description" content="함께 영양제를 챙겨요" />
+
+  <!-- 카카오톡 등에서 링크 공유 시 미리보기 -->
+  <meta property="og:title" content="PillStack 초대" />
+  <meta property="og:description" content="같이 영양제 챙겨요 💊" />
+  <meta property="og:type" content="website" />
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/variable/pretendardvariable.css" />
+  <style>
+    :root {
+      --bg: #0d1114;
+      --surface: rgba(255, 255, 255, 0.05);
+      --border: rgba(255, 255, 255, 0.09);
+      --text: #f2f6f5;
+      --text-dim: #c6d1cd;
+      --muted: #87938f;
+      --accent: #3ed3ae;
+      --on-accent: #072019;
+      --danger: #f0716b;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, sans-serif;
+      background:
+        radial-gradient(120% 80% at 18% 0%, rgba(62, 211, 174, 0.28) 0%, transparent 55%),
+        radial-gradient(110% 65% at 92% 100%, rgba(127, 167, 232, 0.14) 0%, transparent 60%),
+        var(--bg);
+      color: var(--text);
+      min-height: 100vh; min-height: 100dvh;
+      display: flex; align-items: center; justify-content: center;
+      padding: 24px;
+      letter-spacing: -0.02em;
+      -webkit-font-smoothing: antialiased;
+    }
+    .card { width: 100%; max-width: 360px; text-align: center; }
+    .brand { font-size: 0.8rem; color: var(--muted); font-weight: 600; margin-bottom: 28px; }
+    .emoji { font-size: 3.2rem; line-height: 1; margin-bottom: 14px; }
+    h1 { font-size: 1.45rem; font-weight: 800; line-height: 1.4; margin-bottom: 10px; }
+    h1 .name { color: var(--accent); }
+    .sub { font-size: 0.88rem; color: var(--text-dim); line-height: 1.6; }
+    .meta {
+      display: inline-flex; align-items: center; gap: 6px;
+      margin-top: 14px; padding: 6px 12px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 999px; font-size: 0.75rem; color: var(--muted);
+    }
+    .actions { margin-top: 32px; display: flex; flex-direction: column; gap: 10px; }
+    .btn {
+      display: flex; align-items: center; justify-content: center;
+      width: 100%; padding: 15px 20px; border-radius: 14px;
+      font-family: inherit; font-size: 0.95rem; font-weight: 700;
+      border: 1px solid transparent; cursor: pointer; text-decoration: none;
+      transition: transform 120ms ease, opacity 120ms ease;
+    }
+    .btn:active { transform: scale(0.98); }
+    .btn-primary { background: var(--accent); color: var(--on-accent); }
+    .btn-ghost { background: var(--surface); color: var(--text); border-color: var(--border); }
+    .code-row {
+      margin-top: 24px; font-size: 0.78rem; color: var(--muted); line-height: 1.7;
+    }
+    .code {
+      font-variant-numeric: tabular-nums; letter-spacing: 0.22em;
+      font-weight: 800; color: var(--text); font-size: 1.05rem;
+    }
+    .skeleton {
+      height: 1.45rem; width: 70%; margin: 0 auto 10px;
+      background: var(--surface); border-radius: 8px;
+      animation: pulse 1.2s ease-in-out infinite;
+    }
+    .skeleton.sm { height: 0.88rem; width: 50%; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
+    .error { color: var(--danger); font-size: 0.9rem; font-weight: 600; }
+    @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="brand">PillStack</div>
+    <div id="content">
+      <div class="emoji">💊</div>
+      <div class="skeleton"></div>
+      <div class="skeleton sm"></div>
+    </div>
+  </div>
+
+  <script>
+    // 초대 링크 랜딩 페이지
+    // 앱이 설치돼 있으면 Android App Links 가 이 페이지에 오기 전에 앱을 연다.
+    // 즉 이 페이지가 보인다는 건 "앱이 없거나 / PC로 열었다"는 뜻이다.
+    const PACKAGE = 'kr.pillstack';
+    const code = (location.pathname.match(/\/i\/(\d{6})/) || [])[1]
+              || new URLSearchParams(location.search).get('code');
+
+    // Play 스토어로 보낼 때 referrer 에 코드를 실어 보낸다.
+    // 설치 후 첫 실행에서 Install Referrer API 로 읽어 자동 참여시킨다.
+    const storeUrl = code
+      ? `https://play.google.com/store/apps/details?id=${PACKAGE}&referrer=${encodeURIComponent('invite=' + code)}`
+      : `https://play.google.com/store/apps/details?id=${PACKAGE}`;
+
+    const el = document.getElementById('content');
+    const esc = (s) => String(s).replace(/[&<>"']/g, (c) => (
+      { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+    ));
+
+    function render({ groupName, groupEmoji, memberCount, inviterNickname }) {
+      el.innerHTML = `
+        <div class="emoji">${esc(groupEmoji || '💊')}</div>
+        <h1>${esc(inviterNickname || '친구')}님이<br><span class="name">${esc(groupName)}</span>에 초대했어요</h1>
+        <p class="sub">같이 영양제 챙겨요.<br>서로 먹었는지 알려주는 리마인더예요.</p>
+        <div class="meta">현재 ${memberCount}명 참여 중</div>
+        <div class="actions">
+          <a class="btn btn-primary" href="${storeUrl}">앱 설치하고 참여하기</a>
+          <a class="btn btn-ghost" href="pillstack.kr/i/${esc(code)}" id="open-app">앱에서 열기</a>
+        </div>
+        <div class="code-row">앱에서 직접 입력할 초대 코드<br><span class="code">${esc(code)}</span></div>
+      `;
+      // '앱에서 열기'는 커스텀 스킴으로 (App Links 미검증 기기 대비)
+      const openBtn = document.getElementById('open-app');
+      if (openBtn) {
+        openBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          location.href = `kr.pillstack://invite?code=${encodeURIComponent(code)}`;
+        });
+      }
+    }
+
+    function renderError(msg) {
+      el.innerHTML = `
+        <div class="emoji">🙈</div>
+        <h1>초대를 찾을 수 없어요</h1>
+        <p class="sub error">${esc(msg)}</p>
+        <p class="sub" style="margin-top:10px;">초대한 분에게 새 링크를 요청해 주세요.</p>
+        <div class="actions">
+          <a class="btn btn-ghost" href="${storeUrl}">그래도 앱 보러가기</a>
+        </div>
+      `;
+    }
+
+    (async () => {
+      if (!code) return renderError('초대 코드가 없는 링크예요.');
+      try {
+        const res = await fetch(`/api/invite/peek?code=${code}`);
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || '초대 정보를 불러오지 못했어요.');
+        render(data);
+      } catch (err) {
+        renderError(err.message);
+      }
+    })();
+  </script>
+</body>
+</html>
