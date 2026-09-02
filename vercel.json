@@ -22,6 +22,9 @@
     { "source": "/api/account/delete",      "destination": "/api/account/delete.js" },
     { "source": "/api/analyze/ingredients",  "destination": "/api/analyze/ingredients.js" },
     { "source": "/api/invite/peek",         "destination": "/api/invite/peek.js" },
+    { "source": "/api/fcm/register",        "destination": "/api/fcm/register.js" },
+    { "source": "/api/intake",              "destination": "/api/intake.js" },
+    { "source": "/api/nudge",               "destination": "/api/nudge.js" },
     { "source": "/api/cron/cleanup",        "destination": "/api/cron/cleanup.js" },
     { "source": "/i/:code",                 "destination": "/invite.html" }
   ]
