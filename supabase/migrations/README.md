@@ -14,6 +14,7 @@
 | 20260902060402 | `pillstack_v2_lock_helper_functions` | 위 두 헬퍼의 EXECUTE 를 anon/authenticated 에서 회수 (RLS 내부 전용, REST 노출 차단) |
 | 20260902060428 | `pillstack_v2_group_rpcs` | `create_group` / `create_invite` / `peek_invite` / `join_group` — 다단계 조작을 원자화 |
 | 20260902060447 | `pillstack_v2_home_view` | `home_status(date, slot)` — 메인 화면용 그룹×구성원×복용여부 단일 조회 |
+| (이후) | `pillstack_v2_nudge_once_per_receiver` | 챙김 제약을 `(from_user,to_user,date,slot)` → **`(to_user,date,slot)`** 으로 변경 |
 
 ## 설계 메모
 
@@ -22,8 +23,12 @@
 - **영양제 목록은 공유하지 않는다**: 구성원끼리 보이는 것은 `intake_events`(먹었는지 여부)뿐이다.
   `user_supplements` 는 본인만 조회 가능한 정책을 유지한다.
 - **초대는 승인 없음**: 유효한 코드/링크 = 입장권. 대신 7일 만료 + 인원 상한(`pillstack_group_limit()`, 현재 8) 으로 통제.
-- **중복 방지는 DB 제약으로**: `intake_events(user_id, date, slot)` UNIQUE,
-  `nudges(from_user, to_user, date, slot)` UNIQUE — 알림 스팸을 애플리케이션이 아니라 스키마가 막는다.
+- **중복 방지는 DB 제약으로**: 알림 스팸을 애플리케이션이 아니라 스키마가 막는다.
+  - `intake_events(user_id, date, slot)` UNIQUE — 중복 복용 기록 차단
+  - `nudges(to_user, date, slot)` UNIQUE — **받는 사람 기준** 하루 슬롯당 1건.
+    보내는 사람이나 그룹은 키에 넣지 않는다. 넣으면 (a) 5인 그룹에서 4명이 각자 보내 4건이 되고,
+    (b) 다중 그룹에서 그룹 수만큼 곱해진다. 이 제약이 곧 **선착순 잠금**이며,
+    먼저 누른 사람이 "챙긴 사람"이 되고 나머지 화면에서는 버튼이 "○○가 챙겨줬어요"로 바뀐다.
 
 ## 검증 완료 시나리오 (2026-09-02)
 
