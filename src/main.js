@@ -25,18 +25,38 @@ import { initLocalNotifications, scheduleReminders } from './services/localNotif
 import { markAsRead, markAllAsRead, clearAll, getUnreadCount } from './services/notificationStore.js';
 import { apiUrl } from './utils/api.js';
 import { initAnalytics, logEvent, logScreenView, setUserId } from './services/analytics.js';
-import { captureInviteFromUrl, captureInviteFromReferrer, getPendingInvite } from './services/invite.js';
+import { captureInviteFromUrl, captureInviteFromReferrer, getPendingInvite, clearPendingInvite,
+         peekInvite, joinGroup, createGroup, createInvite, shareInvite } from './services/invite.js';
+import { renderToday } from './components/today.js';
+import { renderInvite } from './components/invite.js';
+import { showDosePopup, showCelebration } from './components/dosePopup.js';
+import { fetchHomeStatus, fetchReminderTimes, recordIntake, sendNudge,
+         currentSlot, SLOT_LABEL } from './services/group.js';
+import { supabase } from './lib/supabase.js';
 
 // ─── State Management ───
 const STORAGE_KEY = 'medicheck_supplements';
 
 export const state = {
-  currentPage: 'home',
+  currentPage: 'today',
   supplements: [],
   analysisResult: null,
   timingResult: null,
   apiConnected: false,
   user: null,
+
+  // v2 — 메인 화면(오늘)
+  today: {
+    loading: true,
+    slot: 'morning',
+    groups: [],          // [{ groupId, name, emoji, streak, members: [...] }]
+    mySupplements: [],   // 현재 슬롯에 등록한 내 영양제
+    reminderTimes: {},
+    myIntake: false,     // 그룹이 없을 때 내 복용 여부
+  },
+
+  // v2 — 초대/그룹 만들기 화면
+  invite: { mode: null },
 };
 
 function loadState() {
@@ -94,6 +114,9 @@ function navigate(page) {
   }
   if (page === 'search') {
     setTimeout(() => initSearch(), 100);
+  }
+  if (page === 'today') {
+    loadToday();
   }
 }
 
@@ -498,6 +521,232 @@ function showLoading(show) {
   }
 }
 
+// ═══════════════════════════════════════════
+// v2 — 오늘 화면 / 복용 / 챙기기 / 초대
+// ═══════════════════════════════════════════
+
+/** 현재 슬롯에 등록한 내 영양제 */
+function _mySupplementsForSlot(slot) {
+  return state.supplements.filter(s => (s.slot || 'morning') === slot);
+}
+
+// [DEV 전용] 디자인 프리뷰 픽스처.
+// 로그인 없이 화면을 확인하기 위한 가짜 데이터로, 프로덕션 빌드에서는 코드가 제거된다.
+const IS_DEV_PREVIEW = () =>
+  import.meta.env.DEV && localStorage.getItem('pillstack_dev_preview') === '1';
+
+function _previewFixture() {
+  const ago = (h) => new Date(Date.now() - h * 3600 * 1000).toISOString();
+  return {
+    reminderTimes: { morning: '08:00', evening: '19:00', bedtime: '22:30' },
+    slot: 'morning',
+    mySupplements: [{ name: '오메가3' }, { name: '비타민D' }],
+    groups: [
+      { groupId: 'g1', name: '자기랑', emoji: '💑', streak: 12, members: [
+        { userId: 'me', nickname: '민수', avatar: '🙂', isMe: true,  taken: false, hasSupplements: true },
+        { userId: 'u2', nickname: '자기', avatar: '🐰', isMe: false, taken: true, takenAt: ago(2), hasSupplements: true },
+      ]},
+      { groupId: 'g2', name: '우리집', emoji: '🏠', streak: 3, members: [
+        { userId: 'me', nickname: '아들', avatar: '🙂', isMe: true,  taken: false, hasSupplements: true },
+        { userId: 'u2', nickname: '엄마', avatar: '🌸', isMe: false, taken: true, takenAt: ago(3), hasSupplements: true },
+        { userId: 'u3', nickname: '아빠', avatar: '🧢', isMe: false, taken: false, hasSupplements: true },
+        { userId: 'u4', nickname: '동생', avatar: '🐤', isMe: false, taken: false, hasSupplements: true, nudgedBy: '엄마' },
+      ]},
+    ],
+  };
+}
+
+/** 오늘 화면 데이터 로드 */
+async function loadToday() {
+  const t = state.today;
+
+  if (IS_DEV_PREVIEW()) {
+    Object.assign(t, _previewFixture(), { loading: false });
+    render();
+    return;
+  }
+
+  try {
+    t.reminderTimes = await fetchReminderTimes();
+    t.slot = currentSlot(t.reminderTimes);
+    t.mySupplements = _mySupplementsForSlot(t.slot);
+
+    const groups = await fetchHomeStatus(t.slot);
+
+    // 그룹별 연속 기록 (병렬)
+    await Promise.all(groups.map(async (g) => {
+      try {
+        const { data } = await supabase.rpc('group_streak', { p_group_id: g.groupId });
+        g.streak = data || 0;
+      } catch { g.streak = 0; }
+    }));
+
+    t.groups = groups;
+  } catch (e) {
+    console.warn('[Today] 로드 실패:', e.message);
+    t.groups = [];
+  } finally {
+    t.loading = false;
+    render();
+  }
+}
+
+/** [먹었어요] — 알림은 발생하지 않는다. 완료 시에만 인앱 축하. */
+async function takeDose(slot) {
+  try {
+    const result = await recordIntake(slot);
+    logEvent('dose_taken', { slot });
+
+    // 낙관적 갱신: 내 행을 즉시 먹음 처리
+    state.today.myIntake = true;
+    for (const g of state.today.groups) {
+      const me = g.members.find(m => m.isMe);
+      if (me) { me.taken = true; me.takenAt = new Date().toISOString(); }
+    }
+    render();
+
+    // 전원 완료면 축하 연출 (푸시 없음 — 기획서 9장)
+    if (result.completedGroups?.length > 0) {
+      const withStreak = result.completedGroups.map(c => ({
+        ...c,
+        streak: state.today.groups.find(g => g.groupId === c.groupId)?.streak,
+      }));
+      showCelebration(withStreak);
+      logEvent('group_completed', { groups: withStreak.length });
+    }
+
+    await loadToday();
+  } catch (e) {
+    showToast(e.message || '기록에 실패했어요', 'error');
+  }
+}
+
+/** [챙기기] — 서버가 시간·중복·멤버십을 검증한다. */
+async function nudge(groupId, toUserId, slot) {
+  try {
+    const res = await sendNudge(groupId, toUserId, slot);
+    logEvent('nudge_sent', { slot });
+    showToast(
+      res.delivered ? `${res.toNickname || '상대'}님에게 알림을 보냈어요 💊`
+                    : '챙김을 남겼어요 (조용한 시간이라 나중에 전달돼요)',
+      'success'
+    );
+    await loadToday();
+  } catch (e) {
+    // 425=아직 이름, 409=이미 챙김/이미 복용
+    showToast(e.message || '챙기기에 실패했어요', e.status === 409 ? 'info' : 'error');
+    if (e.status === 409) await loadToday();
+  }
+}
+
+/** 슬롯 시각에 앱이 열려 있으면 복용 팝업을 띄운다. */
+function maybeShowDosePopup() {
+  const t = state.today;
+  if (t.loading || t.mySupplements.length === 0) return;
+
+  const me = t.groups.flatMap(g => g.members).find(m => m.isMe);
+  if (me?.taken || t.myIntake) return;
+
+  const alreadyTaken = [];
+  for (const g of t.groups) {
+    for (const m of g.members) {
+      if (!m.isMe && m.taken) alreadyTaken.push({ nickname: m.nickname, takenAt: m.takenAt });
+    }
+  }
+  showDosePopup({ slot: t.slot, supplements: t.mySupplements, alreadyTaken });
+}
+
+// ─── 초대 화면 상태 관리 ───
+function inviteMode(mode) {
+  state.invite = { mode, nickname: state.invite?.nickname || '' };
+  render();
+}
+
+function inviteField(key, value) {
+  state.invite[key] = value;
+  state.invite.error = null;
+  // 이모지 선택은 즉시 반영이 필요하고, 텍스트 입력은 리렌더 시 포커스를 잃는다
+  if (key === 'emoji') render();
+}
+
+async function checkInviteCode() {
+  const v = state.invite;
+  if (!/^[0-9]{6}$/.test(v.code || '')) {
+    v.error = '6자리 숫자를 입력해주세요'; render(); return;
+  }
+  v.busy = true; render();
+  try {
+    v.preview = await peekInvite(v.code);
+    v.error = null;
+  } catch (e) {
+    v.error = e.message;
+  } finally {
+    v.busy = false; render();
+  }
+}
+
+async function submitJoinGroup() {
+  const v = state.invite;
+  if (!(v.nickname || '').trim()) { v.error = '이 그룹에서 불릴 이름을 정해주세요'; render(); return; }
+  v.busy = true; render();
+  try {
+    await joinGroup(v.code, v.nickname.trim());
+    logEvent('group_joined', {});
+    clearPendingInvite();
+    showToast(`${v.preview.groupName}에 참여했어요!`, 'success');
+    state.invite = { mode: null };
+    navigate('today');
+  } catch (e) {
+    v.error = e.message; v.busy = false; render();
+  }
+}
+
+async function submitCreateGroup() {
+  const v = state.invite;
+  if (!(v.name || '').trim()) { v.error = '그룹 이름을 입력해주세요'; render(); return; }
+  if (!(v.nickname || '').trim()) { v.error = '이 그룹에서 불릴 이름을 정해주세요'; render(); return; }
+  v.busy = true; render();
+  try {
+    const groupId = await createGroup(v.name.trim(), v.emoji || '💑', v.nickname.trim());
+    const { code } = await createInvite(groupId);
+    logEvent('group_created', {});
+    state.invite = { mode: 'share', code, groupId, groupName: v.name.trim(), groupEmoji: v.emoji || '💑' };
+    render();
+  } catch (e) {
+    v.error = e.message; v.busy = false; render();
+  }
+}
+
+async function shareInviteLink() {
+  const v = state.invite;
+  const res = await shareInvite(v.code, v.groupName);
+  if (res.method === 'clipboard') showToast('초대 링크를 복사했어요', 'success');
+  if (res.method === 'failed') showToast('복사에 실패했어요. 코드를 직접 알려주세요', 'error');
+  if (res.method !== 'cancelled') logEvent('invite_shared', { method: res.method });
+}
+
+async function copyInviteCode() {
+  try {
+    await navigator.clipboard.writeText(state.invite.code);
+    showToast('초대 코드를 복사했어요', 'success');
+  } catch {
+    showToast('복사에 실패했어요', 'error');
+  }
+}
+
+/** 기존 그룹의 초대 링크 열기 */
+async function openGroup(groupId) {
+  const g = state.today.groups.find(x => x.groupId === groupId);
+  if (!g) return;
+  try {
+    const { code } = await createInvite(groupId);
+    state.invite = { mode: 'share', code, groupId, groupName: g.name, groupEmoji: g.emoji };
+    navigate('invite');
+  } catch (e) {
+    showToast(e.message || '초대 코드를 만들지 못했어요', 'error');
+  }
+}
+
 // ─── Render ───
 function render() {
   const app = document.getElementById('app');
@@ -511,8 +760,17 @@ function render() {
   let pageHTML = '';
 
   switch (state.currentPage) {
+    case 'today':
+      pageHTML = renderToday();
+      break;
+    case 'invite':
+      pageHTML = renderInvite();
+      break;
+    case 'mystack':
+      pageHTML = renderHome();   // v1 선반 화면을 '내 영양제'로 재사용 (6단계에서 정리)
+      break;
     case 'home':
-      pageHTML = renderHome();
+      pageHTML = renderToday();  // 구 경로 유입 → 새 메인으로
       break;
     case 'search':
       pageHTML = renderSearch();
@@ -536,11 +794,14 @@ function render() {
       pageHTML = renderNotifications();
       break;
     default:
-      pageHTML = renderHome();
+      pageHTML = renderToday();
   }
 
-  const fabHTML = state.currentPage === 'home' ? renderHomeFAB() : '';
-  app.innerHTML = _renderGlobalHeader() + `<main class="app-content">${pageHTML}</main>` + fabHTML + _renderBottomNav();
+  // v2: 탭바 없음 — 메인 1화면 + 서브 진입.
+  // 분석 FAB 는 '내 영양제'(v1 선반)에서만 유지한다.
+  const fabHTML = state.currentPage === 'mystack' ? renderHomeFAB() : '';
+  const chrome = ['today', 'invite'].includes(state.currentPage) ? '' : _renderGlobalHeader();
+  app.innerHTML = chrome + `<main class="app-content">${pageHTML}</main>` + fabHTML;
 }
 
 function _renderGlobalHeader() {
@@ -610,6 +871,18 @@ function _renderBottomNav() {
 
 window.app = {
   navigate,
+  // ─── v2 ───
+  takeDose,
+  nudge,
+  openGroup,
+  inviteMode,
+  inviteField,
+  checkInviteCode,
+  submitJoinGroup,
+  submitCreateGroup,
+  shareInviteLink,
+  copyInviteCode,
+  loadToday,
   addSupplement,
   removeSupplement,
   addFromSearch,
@@ -806,6 +1079,7 @@ async function init() {
       setTimeout(() => splash.remove(), 600);
     }
     render();
+    if (state.user) loadToday();
     if (state.user && !DEV_PREVIEW) showDisclaimerModal();
   }, 1200);
 
@@ -938,8 +1212,15 @@ async function _initInviteCapture() {
 function _promptPendingInvite() {
   const code = getPendingInvite();
   if (!code) return;
-  console.log('[Invite] 보류 중인 초대:', code);
   logEvent('invite_received', { code_present: true });
+
+  // 로그인 전이면 그대로 보류해 둔다. 로그인 후 다시 호출된다.
+  if (!state.user) return;
+
+  // 초대 참여 화면을 코드가 채워진 상태로 연다 (사용자가 다시 입력하지 않도록)
+  state.invite = { mode: 'join', code };
+  navigate('invite');
+  checkInviteCode();
 }
 
 document.addEventListener('DOMContentLoaded', init);
